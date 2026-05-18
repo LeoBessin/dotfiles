@@ -1,0 +1,4 @@
+singleton Theme 1.0 Theme.qml
+BarWidget 1.0 BarWidget.qml
+CalendarView 1.0 CalendarView.qml
+PowerButton 1.0 PowerButton.qml
