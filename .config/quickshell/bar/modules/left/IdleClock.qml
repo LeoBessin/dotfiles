@@ -10,12 +10,13 @@ Item {
     implicitHeight: Theme.barHeight
     implicitWidth:  row.implicitWidth
 
-    // ── Idle inhibitor state ──────────────────────────────────────────────
-    property bool inhibitActive: false
+    property var barWindow: null
 
+    // ── Idle inhibitor state (shared across all bar instances) ────────────
     IdleInhibitor {
         id: idleInhibitor
-        enabled: root.inhibitActive
+        enabled: CaffeineState.active
+        window:  root.barWindow
     }
 
     // ── Clock ─────────────────────────────────────────────────────────────
@@ -82,11 +83,11 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                text:  root.inhibitActive ? "󰅶" : "󰛊"
+                text:  CaffeineState.active ? "󰅶" : "󰛊"
                 // 󰛊 = nf-md-coffee (idle allowed), 󰅶 = nf-md-sleep (inhibit active)
                 font.family:    Theme.monoFamily
                 font.pixelSize: Theme.iconSize - 4
-                color: root.inhibitActive ? Theme.accent : Theme.fgDim
+                color: CaffeineState.active ? Theme.accent : Theme.fgDim
 
                 Behavior on color { ColorAnimation { duration: Theme.animFast } }
             }
@@ -96,7 +97,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape:  Qt.PointingHandCursor
-                onClicked:    root.inhibitActive = !root.inhibitActive
+                onClicked:    CaffeineState.active ? CaffeineState.deactivate() : CaffeineState.activateIndefinite()
             }
         }
 

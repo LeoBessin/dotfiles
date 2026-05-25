@@ -58,7 +58,7 @@ PanelWindow {
         spacing: Theme.widgetSpacing
 
         SystemStats {}
-        IdleClock {}
+        IdleClock { barWindow: root }
     }
 
     // CENTER — truly centered in the bar regardless of left/right widths
@@ -83,7 +83,8 @@ PanelWindow {
         Volume     {}
         Microphone {}
         Tray       {}
-        Battery    {}
-        Power      {}
+        Battery       {}
+        Notifications { barScreen: root.screen }
+        Power         {}
     }
 }

@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import ".."
 
 Item {
@@ -47,11 +48,15 @@ Item {
         grabFocus: true
 
         anchor.item:    triggerBtn
-        anchor.gravity: Edges.Bottom | Edges.Right
+        anchor.edges:   Edges.Bottom
+        anchor.gravity: Edges.Bottom
 
         implicitWidth:  160
         implicitHeight: popupCol.implicitHeight + 16
         color:  "transparent"
+        surfaceFormat.opaque: false
+
+        BackgroundEffect.blurRegion: Region { item: popupBg }
 
         // Close when focus is lost (click outside)
         onClosed: root.menuOpen = false
@@ -59,10 +64,11 @@ Item {
         Keys.onEscapePressed: root.menuOpen = false
 
         Rectangle {
+            id: popupBg
             anchors.fill:  parent
-            color:         Theme.bgPopup
+            color:         Theme.bg
             radius:        Theme.radius
-            border.color:  Qt.rgba(0.70, 0.62, 0.86, 0.20)
+            border.color:  Qt.rgba(0.70, 0.62, 0.86, 0.25)
             border.width:  1
 
             Column {
