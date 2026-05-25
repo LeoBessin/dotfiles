@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import "."
 
@@ -86,8 +87,90 @@ PanelWindow {
 
         MouseArea { anchors.fill: parent }
 
-        // Active tab index: 0=Notifications, 1=Caffeine, 2=Calendar
+        // Active tab index: 0=Notifications, 1=Caffeine, 2=Calendar, 3=Settings
         property int activeTab: 0
+
+        property real settingsVolume:        0
+        property bool settingsMuted:         false
+        property real settingsBrightness:    50
+        property int  settingsBrightnessMax: 100
+
+        // ── Settings tab: volume state ────────────────────────────────────
+        function refreshVolume() {
+            volumeFetcherSettings.running = false
+            volumeFetcherSettings.running = true
+        }
+
+        Component.onCompleted: {
+            refreshVolume()
+            brightGetCurrent.running = true
+            brightGetMax.running     = true
+        }
+
+        onActiveTabChanged: {
+            if (activeTab === 3) {
+                refreshVolume()
+                brightGetCurrent.running = true
+            }
+        }
+
+        Process {
+            id: volumeFetcherSettings
+            command: ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]
+            stdout: SplitParser {
+                onRead: (line) => {
+                    var m = line.match(/Volume:\s*([\d.]+)(\s+\[MUTED\])?/)
+                    if (m) {
+                        panelContent.settingsVolume = Math.round(parseFloat(m[1]) * 100)
+                        panelContent.settingsMuted  = !!m[2]
+                    }
+                }
+            }
+        }
+
+        Process {
+            id: pactlSubscribeSettings
+            command: ["bash", "-c", "pactl subscribe | grep --line-buffered -E \"'(change|new|remove)' on (sink|server)\""]
+            running: true
+            stdout: SplitParser {
+                onRead: (_) => panelContent.refreshVolume()
+            }
+        }
+
+        Process {
+            id: volumeSetSettings
+            command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "50%"]
+            onRunningChanged: if (!running) panelContent.refreshVolume()
+        }
+
+        Process {
+            id: brightGetCurrent
+            command: ["brightnessctl", "get"]
+            stdout: SplitParser {
+                onRead: (line) => {
+                    var v = parseInt(line.trim())
+                    if (!isNaN(v) && panelContent.settingsBrightnessMax > 0)
+                        panelContent.settingsBrightness = Math.round((v / panelContent.settingsBrightnessMax) * 100)
+                }
+            }
+        }
+
+        Process {
+            id: brightGetMax
+            command: ["brightnessctl", "max"]
+            stdout: SplitParser {
+                onRead: (line) => {
+                    var v = parseInt(line.trim())
+                    if (!isNaN(v)) panelContent.settingsBrightnessMax = v
+                }
+            }
+        }
+
+        Process {
+            id: brightSetSettings
+            command: ["brightnessctl", "set", "50%"]
+            onExited: brightGetCurrent.running = true
+        }
 
         ColumnLayout {
             anchors.fill:    parent
@@ -102,7 +185,8 @@ PanelWindow {
                 Text {
                     text: panelContent.activeTab === 0 ? "Notifications"
                         : panelContent.activeTab === 1 ? "Caffeine"
-                        : "Calendar"
+                        : panelContent.activeTab === 2 ? "Calendar"
+                        : "Settings"
                     font.family:    Theme.fontFamily
                     font.pixelSize: Theme.fontSize + 1
                     font.weight:    Font.SemiBold
@@ -157,7 +241,7 @@ PanelWindow {
                 spacing: 8
 
                 Text {
-                    text:  ""   // Material Symbols: bedtime
+                    text:  ""   // Material Symbols: bedtime
                     font.family:    Theme.iconFamily
                     font.pixelSize: Theme.iconSize - 1
                     color: NotifService.dnd ? Theme.accent : Theme.fgDim
@@ -328,6 +412,150 @@ PanelWindow {
                         }
                     }
                 }
+
+                // Tab 3: Settings
+                Item {
+                    anchors.fill: parent
+                    visible: panelContent.activeTab === 3
+
+                    ColumnLayout {
+                        anchors {
+                            top:   parent.top
+                            left:  parent.left
+                            right: parent.right
+                        }
+                        spacing: 10
+
+                        // Volume label row
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Text {
+                                text: panelContent.settingsMuted || panelContent.settingsVolume === 0
+                                      ? ""
+                                      : panelContent.settingsVolume < 30 ? ""
+                                      : panelContent.settingsVolume < 70 ? ""
+                                      : ""
+                                font.family:    Theme.iconFamily
+                                font.pixelSize: Theme.iconSize
+                                color: panelContent.settingsMuted ? Theme.fgDim : Theme.fg
+                            }
+
+                            Text {
+                                text: "Volume"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Theme.fg
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: panelContent.settingsMuted ? "mute" : panelContent.settingsVolume + "%"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Theme.fgDim
+                            }
+                        }
+
+                        SettingsSlider {
+                            Layout.fillWidth: true
+                            value: panelContent.settingsVolume
+                            onMoved: (v) => {
+                                panelContent.settingsVolume    = v
+                                volumeSetSettings.command      = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", v + "%"]
+                                volumeSetSettings.running      = false
+                                volumeSetSettings.running      = true
+                            }
+                        }
+
+                        // Brightness label row
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Text {
+                                text: panelContent.settingsBrightness < 25 ? ""
+                                    : panelContent.settingsBrightness < 60 ? ""
+                                    : ""
+                                font.family:    Theme.iconFamily
+                                font.pixelSize: Theme.iconSize
+                                color: Theme.fg
+                            }
+
+                            Text {
+                                text: "Brightness"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Theme.fg
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: Math.round(panelContent.settingsBrightness) + "%"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Theme.fgDim
+                            }
+                        }
+
+                        SettingsSlider {
+                            Layout.fillWidth: true
+                            value:    panelContent.settingsBrightness
+                            minValue: 5
+                            onMoved: (v) => {
+                                panelContent.settingsBrightness    = v
+                                brightSetSettings.command          = ["brightnessctl", "set", v + "%"]
+                                brightSetSettings.running          = false
+                                brightSetSettings.running          = true
+                            }
+                        }
+
+                        // Divider
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color:  Qt.rgba(0.70, 0.62, 0.86, 0.15)
+                        }
+
+                        // Power buttons 2×2
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns:       2
+                            rowSpacing:    6
+                            columnSpacing: 6
+
+                            PowerButton {
+                                icon:      ""
+                                label:     "Lock"
+                                iconColor: Theme.fg
+                                command:   ["hyprlock"]
+                                Layout.fillWidth: true
+                            }
+                            PowerButton {
+                                icon:      ""
+                                label:     "Log out"
+                                iconColor: Theme.fg
+                                command:   ["bash", "-c", "loginctl terminate-user $USER"]
+                                Layout.fillWidth: true
+                            }
+                            PowerButton {
+                                icon:      ""
+                                label:     "Reboot"
+                                iconColor: Theme.yellow
+                                command:   ["systemctl", "reboot"]
+                                Layout.fillWidth: true
+                            }
+                            PowerButton {
+                                icon:      ""
+                                label:     "Shut down"
+                                iconColor: Theme.red
+                                command:   ["systemctl", "poweroff"]
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+                }
             }
 
             // ── Bottom tab bar ────────────────────────────────────────────
@@ -343,22 +571,28 @@ PanelWindow {
                 spacing: 4
 
                 TabButton {
-                    icon:      ""    // notifications
+                    icon:      ""    // notifications
                     tabIndex:  0
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 0
                 }
                 TabButton {
-                    icon:      ""    // coffee
+                    icon:      ""    // coffee
                     tabIndex:  1
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 1
                 }
                 TabButton {
-                    icon:      ""    // calendar_month
+                    icon:      ""    // calendar_month
                     tabIndex:  2
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 2
+                }
+                TabButton {
+                    icon:      ""    // tune
+                    tabIndex:  3
+                    activeTab: panelContent.activeTab
+                    onSelect:  panelContent.activeTab = 3
                 }
             }
         }
@@ -443,6 +677,60 @@ PanelWindow {
             hoverEnabled: true
             cursorShape:  Qt.PointingHandCursor
             onClicked:    parent.select()
+        }
+    }
+
+    component SettingsSlider: Item {
+        id: sliderRoot
+        property real value:    50
+        property real minValue: 0
+        signal moved(real newValue)
+
+        implicitHeight: 20
+
+        Rectangle {
+            id: sliderTrack
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left:  parent.left
+            anchors.right: parent.right
+            height: 4
+            radius: 2
+            color: Qt.rgba(0.30, 0.28, 0.45, 0.70)
+
+            Rectangle {
+                width:  Math.max(sliderTrack.radius * 2,
+                                 (sliderRoot.value / 100) * sliderTrack.width)
+                height: parent.height
+                radius: parent.radius
+                color:  Theme.accent
+            }
+        }
+
+        Rectangle {
+            id: sliderThumb
+            width:  14
+            height: 14
+            radius: 7
+            color:  "white"
+            anchors.verticalCenter: parent.verticalCenter
+            x: Math.max(0, Math.min(
+                   (sliderRoot.value / 100) * (sliderRoot.width - width),
+                   sliderRoot.width - width))
+        }
+
+        MouseArea {
+            id: sliderMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape:  Qt.SizeHorCursor
+
+            function valueFromX(mx) {
+                var pct = Math.max(0, Math.min(mx, width)) / width * 100
+                return Math.max(sliderRoot.minValue, Math.min(100, Math.round(pct)))
+            }
+
+            onPressed:         (mouse) => sliderRoot.moved(valueFromX(mouse.x))
+            onPositionChanged: (mouse) => { if (pressed) sliderRoot.moved(valueFromX(mouse.x)) }
         }
     }
 }

@@ -3,6 +3,8 @@ set -g fish_greeting ""
 if status is-interactive
     # Dotfiles bare repo
     alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+    starship init fish | source
 end
 
 # PATH

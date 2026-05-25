@@ -25,7 +25,6 @@ RowLayout {
 
             Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
-            // App icon
             IconImage {
                 anchors.centerIn: parent
                 source:      trayItem.item.icon
@@ -36,24 +35,37 @@ RowLayout {
             PopupWindow {
                 id: popup
                 visible: false
+                grabFocus: true
                 anchor.item:    trayItem
                 anchor.edges:   Edges.Bottom
                 anchor.gravity: Edges.Bottom
 
-                implicitWidth:  menuCol.implicitWidth + 16
+                implicitWidth:  Math.max(180, menuCol.implicitWidth + 16)
                 implicitHeight: menuCol.implicitHeight + 12
                 color: "transparent"
 
+                // Stack of parent menu handles for back navigation
+                property var menuStack: []
+
                 onVisibleChanged: {
-                    var rootItem = trayItem.item.hasMenu && trayItem.item.menu && trayItem.item.menu.menu
-                    if (!rootItem) return
-                    if (visible) rootItem.sendOpened()
-                    else rootItem.sendClosed()
+                    if (!visible) menuStack = []
+                }
+
+                Connections {
+                    target: popup._backingWindow
+                    enabled: popup.visible
+                    function onActiveChanged() { if (!target.active) popup.visible = false }
                 }
 
                 QsMenuOpener {
                     id: opener
                     menu: trayItem.item.menu
+                }
+
+                // Sub-opener used when drilling into a submenu
+                QsMenuOpener {
+                    id: subOpener
+                    menu: null
                 }
 
                 Rectangle {
@@ -63,7 +75,6 @@ RowLayout {
                     border.color: Qt.rgba(0.70, 0.62, 0.86, 0.20)
                     border.width: 1
 
-                    // Close on click outside
                     MouseArea {
                         anchors.fill: parent
                         onClicked: popup.visible = false
@@ -81,110 +92,141 @@ RowLayout {
                         }
                         spacing: 2
 
-                        Repeater {
-                            model: opener.children.values
+                        // ── Back button (shown when inside a submenu) ─────
+                        Rectangle {
+                            visible: popup.menuStack.length > 0
+                            width:   menuCol.width
+                            implicitHeight: backRow.implicitHeight + 8
+                            radius: Theme.pillRadius - 2
+                            color:  backHover.containsMouse ? Theme.bgHover : "transparent"
+                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
-                            delegate: Loader {
-                                required property var modelData
-                                width: menuCol.width
-
-                                // Separator or normal item
-                                sourceComponent: modelData.isSeparator ? separatorComp : menuItemComp
-
-                                property var _entry: modelData
-                            }
-                        }
-                    }
-                }
-
-                // ── Separator component ───────────────────────────────────
-                Component {
-                    id: separatorComp
-                    Rectangle {
-                        width:  parent ? parent.width : 0
-                        height: 1
-                        color:  Qt.rgba(0.70, 0.62, 0.86, 0.15)
-                        anchors.margins: 4
-                    }
-                }
-
-                // ── Menu item component ───────────────────────────────────
-                Component {
-                    id: menuItemComp
-                    Rectangle {
-                        id: menuRow
-                        // Access parent Loader's _entry via Loader.item chain
-                        property var entry: parent ? parent._entry : null
-
-                        width:  parent ? parent.width : 200
-                        implicitHeight: itemLayout.implicitHeight + 8
-                        radius: Theme.pillRadius - 2
-                        color:  enabled && rowHover.containsMouse
-                                ? Theme.bgHover
-                                : "transparent"
-                        Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                        opacity: entry && entry.enabled ? 1.0 : 0.45
-
-                        RowLayout {
-                            id: itemLayout
-                            anchors {
-                                left:  parent.left
-                                right: parent.right
-                                verticalCenter: parent.verticalCenter
-                                leftMargin:  6
-                                rightMargin: 6
-                            }
-                            spacing: 8
-
-                            // Icon
-                            Item {
-                                implicitWidth:  16
-                                implicitHeight: 16
-
-                                IconImage {
-                                    anchors.fill: parent
-                                    // icon may be a name ("firefox") or already an image:// URL
-                                    source: {
-                                        if (!menuRow.entry || menuRow.entry.icon === "") return ""
-                                        var ic = menuRow.entry.icon
-                                        return ic.startsWith("image://") || ic.startsWith("/") || ic.startsWith("file://")
-                                               ? ic
-                                               : "image://icon/" + ic
-                                    }
-                                    implicitSize: 16
-                                    visible: !!(menuRow.entry && menuRow.entry.icon !== "")
+                            RowLayout {
+                                id: backRow
+                                anchors {
+                                    left: parent.left; right: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                    leftMargin: 6; rightMargin: 6
+                                }
+                                spacing: 6
+                                Text {
+                                    text: ""   // chevron_left
+                                    font.family:    Theme.iconFamily
+                                    font.pixelSize: 14
+                                    color: Theme.fgDim
+                                }
+                                Text {
+                                    text: "Back"
+                                    font.family:    Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
                                 }
                             }
-
-                            Text {
-                                text:  menuRow.entry ? menuRow.entry.text : ""
-                                font.family:    Theme.fontFamily
-                                font.pixelSize: Theme.fontSize
-                                color: Theme.fg
-                                Layout.fillWidth: true
-                                elide: Text.ElideRight
-                            }
-
-                            // Submenu arrow
-                            Text {
-                                visible: !!(menuRow.entry && menuRow.entry.children && menuRow.entry.children.count > 0)
-                                text:  ""   // chevron_right
-                                font.family:    Theme.iconFamily
-                                font.pixelSize: 14
-                                color: Theme.fgDim
+                            MouseArea {
+                                id: backHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape:  Qt.PointingHandCursor
+                                onClicked: {
+                                    var stack = popup.menuStack.slice()
+                                    var prev = stack.pop()
+                                    popup.menuStack = stack
+                                    subOpener.menu = stack.length > 0 ? prev : null
+                                }
                             }
                         }
 
-                        MouseArea {
-                            id: rowHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape:  Qt.PointingHandCursor
-                            enabled: !!(menuRow.entry && menuRow.entry.enabled)
-                            onClicked: {
-                                if (menuRow.entry) menuRow.entry.sendTriggered()
-                                popup.visible = false
+                        // ── Menu items ────────────────────────────────────
+                        Repeater {
+                            model: subOpener.menu ? subOpener.children.values : opener.children.values
+
+                            delegate: Rectangle {
+                                required property var modelData
+                                property var entry: modelData
+
+                                width:  menuCol.width
+                                implicitHeight: entry && entry.isSeparator ? 5 : itemRow.implicitHeight + 8
+                                radius: Theme.pillRadius - 2
+                                color:  !entry || entry.isSeparator ? "transparent"
+                                        : rowHover.containsMouse ? Theme.bgHover : "transparent"
+                                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                                opacity: entry && entry.enabled ? 1.0 : 0.45
+
+                                Rectangle {
+                                    visible: entry && entry.isSeparator
+                                    anchors.centerIn: parent
+                                    width: parent.width - 8
+                                    height: 1
+                                    color: Qt.rgba(0.70, 0.62, 0.86, 0.15)
+                                }
+
+                                RowLayout {
+                                    id: itemRow
+                                    visible: entry && !entry.isSeparator
+                                    anchors {
+                                        left:  parent.left
+                                        right: parent.right
+                                        verticalCenter: parent.verticalCenter
+                                        leftMargin:  6
+                                        rightMargin: 6
+                                    }
+                                    spacing: 8
+
+                                    Item {
+                                        implicitWidth:  16
+                                        implicitHeight: 16
+                                        visible: !!(entry && entry.icon !== "")
+
+                                        IconImage {
+                                            anchors.fill: parent
+                                            source: {
+                                                if (!entry || entry.icon === "") return ""
+                                                var ic = entry.icon
+                                                return ic.startsWith("image://") || ic.startsWith("/") || ic.startsWith("file://")
+                                                       ? ic : "image://icon/" + ic
+                                            }
+                                            implicitSize: 16
+                                        }
+                                    }
+
+                                    Text {
+                                        text: entry ? entry.text : ""
+                                        font.family:    Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize
+                                        color: Theme.fg
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        visible: !!(entry && entry.hasChildren)
+                                        text:  ""
+                                        font.family:    Theme.iconFamily
+                                        font.pixelSize: 14
+                                        color: Theme.fgDim
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: rowHover
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape:  Qt.PointingHandCursor
+                                    enabled: !!(entry && entry.enabled && !entry.isSeparator)
+                                    onClicked: {
+                                        if (!entry) return
+                                        if (entry.hasChildren) {
+                                            var stack = popup.menuStack.slice()
+                                            stack.push(subOpener.menu)
+                                            popup.menuStack = stack
+                                            subOpener.menu = entry
+                                        } else {
+                                            entry.triggered()
+                                            popup.visible = false
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
