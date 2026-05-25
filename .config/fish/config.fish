@@ -1,7 +1,10 @@
-# All User Configs goes here
+set -g fish_greeting ""
 
-# Dotfiles bare repo alias
-alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+if status is-interactive
+    # Dotfiles bare repo
+    alias dotfiles='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+end
 
-# opencode
-fish_add_path /home/nexus/.opencode/bin
+# PATH
+fish_add_path ~/.local/bin
+fish_add_path ~/.opencode/bin
