@@ -1,0 +1,13 @@
+configuration {
+    modi:           "drun,run,window,filebrowser";
+    show-icons:     true;
+    icon-theme:     "Tela-circle-pink";
+    drun-display-format: "{name}";
+    window-format:  "{w}  {c}  {t}";
+    display-drun:   "  Apps";
+    display-run:    "  Run";
+    display-window: "  Windows";
+    display-filebrowser: "  Files";
+}
+
+@theme "~/.config/rofi/launcher.rasi"

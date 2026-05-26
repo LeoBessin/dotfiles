@@ -1,0 +1,117 @@
+/**
+ * Rofi launcher — Windows app launcher style (Wintoys-inspired)
+ * Colors: Rose Pine
+ */
+
+* {
+    bg:          #1a1625f2;
+    bg-input:    #26233aaa;
+    bg-selected: #312e4599;
+    border-col:  #403d52;
+    fg:          #e0def4;
+    fg-dim:      #6e6a86;
+    accent:      #eb6f92;
+    accent-alt:  #c4a7e7;
+
+    font:             "JetBrains Mono 12";
+    background-color: transparent;
+    text-color:       @fg;
+    border-color:     @border-col;
+}
+
+window {
+    width:            580px;
+    location:         center;
+    anchor:           center;
+    background-color: transparent;
+    border:           1px;
+    border-color:     @border-col;
+    border-radius:    16px;
+    padding:          0px;
+}
+
+mainbox {
+    spacing:          0px;
+    padding:          20px;
+    margin:           0px;
+    background-color: transparent;
+    border-radius:    16px;
+    children:         [ inputbar, listview ];
+}
+
+/* ── Search bar ─────────────────────────────────────── */
+inputbar {
+    background-color: @bg-input;
+    border-radius:    10px;
+    border:           1px;
+    border-color:     @border-col;
+    padding:          11px 16px;
+    margin:           0px 0px 14px 0px;
+    spacing:          10px;
+    children:         [ prompt, entry ];
+}
+
+prompt {
+    text-color:       @fg-dim;
+    vertical-align:   0.5;
+}
+
+entry {
+    placeholder:       "Search apps...";
+    placeholder-color: @fg-dim;
+    text-color:        @fg;
+    vertical-align:    0.5;
+    cursor:            text;
+}
+
+/* ── App list ───────────────────────────────────────── */
+listview {
+    lines:        9;
+    columns:      1;
+    scrollbar:    false;
+    spacing:      3px;
+    cycle:        true;
+    fixed-height: true;
+    background-color: transparent;
+}
+
+element {
+    padding:          9px 12px;
+    border-radius:    8px;
+    spacing:          13px;
+    orientation:      horizontal;
+    background-color: transparent;
+    children:         [ element-icon, element-text ];
+    cursor:           pointer;
+}
+
+element normal normal   { background-color: transparent; }
+element normal urgent   { background-color: transparent; text-color: @accent; }
+element normal active   { background-color: transparent; text-color: @accent-alt; }
+element selected normal { background-color: @bg-selected; text-color: @fg; border-radius: 8px; }
+element selected urgent { background-color: @bg-selected; text-color: @accent; }
+element selected active { background-color: @bg-selected; text-color: @accent-alt; }
+
+element-icon {
+    size:           22px;
+    vertical-align: 0.5;
+}
+
+element-text {
+    vertical-align: 0.5;
+    text-color:     inherit;
+    highlight:      bold #eb6f92;
+}
+
+/* ── No results message ─────────────────────────────── */
+message {
+    padding:          10px 14px;
+    border-radius:    8px;
+    background-color: @bg-input;
+    margin:           0px 0px 10px 0px;
+}
+
+textbox {
+    text-color: @fg-dim;
+    font:       "JetBrains Mono 11";
+}
