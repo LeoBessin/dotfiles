@@ -119,6 +119,8 @@ local blur_namespaces = {
     "swaync-notification-window",
     "swaync-control-center",
     "logout_dialog",
+    "quickshell-notif-center",
+    "quickshell-bar",
 }
 
 for _, ns in ipairs(blur_namespaces) do

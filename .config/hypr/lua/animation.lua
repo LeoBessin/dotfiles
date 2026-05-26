@@ -35,5 +35,5 @@ hl.animation({ leaf = "layersOut",     enabled = true, speed = 5,  bezier = "win
 
 -- ── Workspaces ───────────────────────────────────────────────────
 hl.animation({ leaf = "workspaces",    enabled = true, speed = 5,  bezier = "wind" })
-hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 5,  bezier = "winIn" })
-hl.animation({ leaf = "workspacesOut", enabled = true, speed = 5,  bezier = "winOut" })
+hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 5,  bezier = "wind" })
+hl.animation({ leaf = "workspacesOut", enabled = true, speed = 5,  bezier = "wind" })

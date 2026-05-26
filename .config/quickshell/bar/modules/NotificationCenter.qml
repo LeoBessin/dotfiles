@@ -29,6 +29,8 @@ PanelWindow {
     color: "transparent"
     surfaceFormat.opaque: false
 
+    BackgroundEffect.blurRegion: Region { item: panelContent }
+
     visible: false
     onVisibleChanged: if (!visible && root.isActive) NotifService.centerOpen = false
 
@@ -37,6 +39,7 @@ PanelWindow {
             root.visible = true
             hideTimer.stop()
             markReadTimer.restart()
+            panelContent.activeTab = 0
         } else {
             hideTimer.restart()
         }
@@ -80,7 +83,7 @@ PanelWindow {
             NumberAnimation { duration: Theme.animFast }
         }
 
-        color:        Theme.bg
+        color:        Qt.rgba(0.10, 0.09, 0.15, 0.55)
         radius:       Theme.radius
         border.color: Qt.rgba(0.70, 0.62, 0.86, 0.20)
         border.width: 1
@@ -241,7 +244,7 @@ PanelWindow {
                 spacing: 8
 
                 Text {
-                    text:  ""   // Material Symbols: bedtime
+                    text:  ""   // Material Symbols: bedtime
                     font.family:    Theme.iconFamily
                     font.pixelSize: Theme.iconSize - 1
                     color: NotifService.dnd ? Theme.accent : Theme.fgDim
@@ -433,10 +436,10 @@ PanelWindow {
 
                             Text {
                                 text: panelContent.settingsMuted || panelContent.settingsVolume === 0
-                                      ? ""
-                                      : panelContent.settingsVolume < 30 ? ""
-                                      : panelContent.settingsVolume < 70 ? ""
-                                      : ""
+                                      ? ""
+                                      : panelContent.settingsVolume < 30 ? ""
+                                      : panelContent.settingsVolume < 70 ? ""
+                                      : ""
                                 font.family:    Theme.iconFamily
                                 font.pixelSize: Theme.iconSize
                                 color: panelContent.settingsMuted ? Theme.fgDim : Theme.fg
@@ -475,9 +478,9 @@ PanelWindow {
                             spacing: 8
 
                             Text {
-                                text: panelContent.settingsBrightness < 25 ? ""
-                                    : panelContent.settingsBrightness < 60 ? ""
-                                    : ""
+                                text: panelContent.settingsBrightness < 25 ? ""
+                                    : panelContent.settingsBrightness < 60 ? ""
+                                    : ""
                                 font.family:    Theme.iconFamily
                                 font.pixelSize: Theme.iconSize
                                 color: Theme.fg
@@ -526,28 +529,28 @@ PanelWindow {
                             columnSpacing: 6
 
                             PowerButton {
-                                icon:      ""
+                                icon:      ""
                                 label:     "Lock"
                                 iconColor: Theme.fg
                                 command:   ["hyprlock"]
                                 Layout.fillWidth: true
                             }
                             PowerButton {
-                                icon:      ""
+                                icon:      ""
                                 label:     "Log out"
                                 iconColor: Theme.fg
                                 command:   ["bash", "-c", "loginctl terminate-user $USER"]
                                 Layout.fillWidth: true
                             }
                             PowerButton {
-                                icon:      ""
+                                icon:      ""
                                 label:     "Reboot"
                                 iconColor: Theme.yellow
                                 command:   ["systemctl", "reboot"]
                                 Layout.fillWidth: true
                             }
                             PowerButton {
-                                icon:      ""
+                                icon:      ""
                                 label:     "Shut down"
                                 iconColor: Theme.red
                                 command:   ["systemctl", "poweroff"]
@@ -571,25 +574,25 @@ PanelWindow {
                 spacing: 4
 
                 TabButton {
-                    icon:      ""    // notifications
+                    icon:      ""    // notifications
                     tabIndex:  0
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 0
                 }
                 TabButton {
-                    icon:      ""    // coffee
+                    icon:      ""    // coffee
                     tabIndex:  1
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 1
                 }
                 TabButton {
-                    icon:      ""    // calendar_month
+                    icon:      ""    // calendar_month
                     tabIndex:  2
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 2
                 }
                 TabButton {
-                    icon:      ""    // tune
+                    icon:      ""    // tune
                     tabIndex:  3
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 3

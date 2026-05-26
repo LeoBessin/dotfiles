@@ -62,6 +62,7 @@ PanelWindow {
                 notifId:     model.notifId
                 appName:     model.appName
                 appIcon:     model.appIcon
+                image:       model.image
                 summary:     model.summary
                 body:        model.body
                 timeStr:     model.timeStr

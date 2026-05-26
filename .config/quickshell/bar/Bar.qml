@@ -23,14 +23,14 @@ PanelWindow {
 
     // ExclusionMode.Normal doesn't fire with 3-edge anchors; set the zone explicitly
     exclusionMode: ExclusionMode.Exclusive
-    exclusiveZone: Theme.barHeight + 4
+    exclusiveZone: Theme.barHeight + 6
 
     // Layer-shell positioning
     WlrLayershell.layer:    WlrLayer.Top
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-    implicitHeight: Theme.barHeight + 4  // +4 for 2px top + 2px bottom margin
+    implicitHeight: Theme.barHeight + 6  // +6 for 3px top + 3px bottom margin
     color:  "transparent"
     surfaceFormat.opaque: false
 
@@ -38,7 +38,7 @@ PanelWindow {
     Rectangle {
         id: barBg
         anchors.fill: parent
-        anchors.margins: 2
+        anchors.margins: 3
         color:        Theme.bg
         radius:       Theme.radius
         border.color: Qt.rgba(0.70, 0.62, 0.86, 0.25)

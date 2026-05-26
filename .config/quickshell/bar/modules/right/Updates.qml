@@ -1,5 +1,4 @@
-// right/Updates.qml — pending update count badge; click runs hyde-shell system.update.sh
-// Counts: hyde-shell system.update (polled every 30 minutes)
+// right/Updates.qml — pending update count (pacman + AUR + flatpak)
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -9,44 +8,45 @@ import ".."
 BarWidget {
     id: root
 
-    property int    totalCount:  0
-    property string tooltipText: ""
+    property int totalCount:   0
+    property int pacmanCount:  0
+    property int aurCount:     0
+    property int flatpakCount: 0
 
-    // Always visible
     visible: true
 
-    // ── Poll every 30 minutes + on start ─────────────────────────────────
     Timer {
-        interval:         1800000    // 30 minutes
+        interval:         1800000
         running:          true
         repeat:           true
         triggeredOnStart: true
         onTriggered: checkProc.running = true
     }
 
-    // hyde-shell system.update — check for available updates
+    // Outputs "pacman aur flatpak" counts on one line
     Process {
         id: checkProc
-        command: ["hyde-shell", "system.update"]
+        command: ["sh", "-c",
+            "p=$(checkupdates 2>/dev/null | wc -l); " +
+            "a=$(yay -Qua 2>/dev/null | wc -l); " +
+            "f=$(flatpak remote-ls --updates 2>/dev/null | wc -l); " +
+            "echo \"$p $a $f\""
+        ]
         stdout: SplitParser {
             onRead: (line) => {
-                try {
-                    var obj = JSON.parse(line.trim())
-                    var m = obj.text ? obj.text.match(/\d+/) : null
-                    root.totalCount = m ? parseInt(m[0]) : 0
-                    root.tooltipText = obj.tooltip ? obj.tooltip.replace(/\\n/g, "\n") : ""
-                } catch (e) {
-                    var n = parseInt(line.trim())
-                    root.totalCount = isNaN(n) ? 0 : n
-                }
+                var parts = line.trim().split(/\s+/)
+                root.pacmanCount  = parseInt(parts[0]) || 0
+                root.aurCount     = parseInt(parts[1]) || 0
+                root.flatpakCount = parseInt(parts[2]) || 0
+                root.totalCount   = root.pacmanCount + root.aurCount + root.flatpakCount
             }
         }
     }
 
-    // ── Tooltip ───────────────────────────────────────────────────────────
+    // ── Tooltip — per-source breakdown ───────────────────────────────────
     PopupWindow {
         id: tooltip
-        visible:        root.hovered && root.tooltipText !== ""
+        visible:        root.hovered
         anchor.item:    root
         anchor.edges:   Edges.Bottom
         anchor.gravity: Edges.Bottom
@@ -65,37 +65,36 @@ BarWidget {
             Text {
                 id: tooltipLabel
                 anchors.centerIn: parent
-                text:           root.tooltipText
+                text: `Pacman: ${root.pacmanCount}   AUR: ${root.aurCount}   Flatpak: ${root.flatpakCount}`
                 font.family:    Theme.fontFamily
                 font.pixelSize: Theme.fontSize
                 color:          Theme.fg
-                lineHeight:     1.4
             }
         }
     }
 
-    // ── Click → hyde-shell system.update.sh up ───────────────────────────
+    // ── Click → kitty running yay + flatpak update ───────────────────────
     onClicked: upgradeProc.running = true
 
     Process {
         id: upgradeProc
-        command: ["hyde-shell", "system.update.sh", "up"]
+        command: ["kitty", "sh", "-c",
+            "fastfetch; yay && flatpak update; echo; echo '--- Done. Press Enter to close ---'; read"
+        ]
     }
 
     // ── Content ───────────────────────────────────────────────────────────
     content: RowLayout {
-        id: countRow
         spacing: 2
 
         Text {
-            text:  "󰮯"
+            text:           "󰮯"
             font.family:    Theme.iconFamily
             font.pixelSize: Theme.iconSize - 2
             color: root.hovered ? Theme.accent : Theme.fg
             Behavior on color { ColorAnimation { duration: Theme.animFast } }
         }
 
-        // Badge pill — count or checkmark
         Rectangle {
             implicitWidth:  badgeLabel.implicitWidth + 6
             implicitHeight: 13
@@ -105,11 +104,11 @@ BarWidget {
             Text {
                 id: badgeLabel
                 anchors.centerIn: parent
-                text:  totalCount > 0 ? root.totalCount : "\ue876"
+                text:           totalCount > 0 ? root.totalCount : ""
                 font.family:    totalCount > 0 ? Theme.fontFamily : Theme.iconFamily
                 font.pixelSize: Theme.fontSize - 3
                 font.weight:    Font.Bold
-                color: Theme.bgSolid
+                color:          Theme.bgSolid
             }
         }
     }

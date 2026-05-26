@@ -9,10 +9,12 @@ Rectangle {
     property int    notifId
     property string appName
     property string appIcon
+    property string image
     property string summary
     property string body
     property string timeStr
     property string actionsJson
+    property bool   hasDefault
     property bool   read
     property bool   dismissed
 
@@ -55,7 +57,22 @@ Rectangle {
         cursorShape:  Qt.PointingHandCursor
         onEntered: { if (!root.read) readTimer.restart() }
         onExited:  readTimer.stop()
-        onClicked: { if (!root.read) root.readRequested() }
+        onClicked: {
+            if (!root.read) root.readRequested()
+            if (root.hasDefault) {
+                var ref = NotifService._liveRefs[root.notifId]
+                try {
+                    if (ref) {
+                        for (var i = 0; i < ref.actions.length; i++) {
+                            if (ref.actions[i].identifier === "default") {
+                                ref.actions[i].invoke()
+                                break
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+        }
     }
 
     Timer {
@@ -85,19 +102,33 @@ Rectangle {
             radius: 8
             color:  Qt.rgba(0.18, 0.16, 0.30, 0.60)
             Layout.alignment: Qt.AlignTop
+            clip: true
 
-            IconImage {
-                anchors.centerIn: parent
-                source:      root.appIcon !== "" ? (root.appIcon.startsWith("/") || root.appIcon.startsWith("image://") ? root.appIcon : "image://icon/" + root.appIcon) : ""
-                implicitSize: 24
-                visible: root.appIcon !== ""
+            // Notification image (e.g. avatar, album art)
+            Image {
+                anchors.fill: parent
+                source:     root.image
+                visible:    root.image !== ""
+                fillMode:   Image.PreserveAspectCrop
+                smooth:     true
+                mipmap:     true
             }
 
-            // Fallback glyph when no icon
+            // App icon when no notification image
+            IconImage {
+                anchors.centerIn: parent
+                source:      root.image === "" && root.appIcon !== ""
+                             ? (root.appIcon.startsWith("/") ? "file://" + root.appIcon : root.appIcon.startsWith("image://") ? root.appIcon : "image://icon/" + root.appIcon)
+                             : ""
+                implicitSize: 24
+                visible: root.image === "" && root.appIcon !== ""
+            }
+
+            // Fallback glyph when neither image nor icon
             Text {
                 anchors.centerIn: parent
-                visible: root.appIcon === ""
-                text:  ""   // Material Symbols: notifications
+                visible: root.image === "" && root.appIcon === ""
+                text:  ""
                 font.family:    Theme.iconFamily
                 font.pixelSize: 20
                 color: Theme.fgDim
@@ -181,6 +212,7 @@ Rectangle {
                 font.family:    Theme.fontFamily
                 font.pixelSize: Theme.fontSize - 1
                 color:  Theme.fgDim
+                linkColor: Theme.accent
                 wrapMode: Text.WordWrap
                 maximumLineCount: 3
                 elide:  Text.ElideRight
@@ -191,7 +223,7 @@ Rectangle {
             RowLayout {
                 id: actionsRow
                 spacing: 6
-                visible: !root.dismissed && _parsedActions.length > 0
+                visible: _parsedActions.length > 0
 
                 property var _parsedActions: {
                     try { return JSON.parse(root.actionsJson || "[]").slice(0, 2) }

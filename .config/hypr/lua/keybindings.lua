@@ -10,7 +10,7 @@ local MCS = "SUPER + CTRL + SHIFT"
 local terminal    = "kitty"
 local editor      = "code"
 local explorer    = "dolphin"
-local browser     = "com.brave.Browser"
+local browser     = "brave"
 
 -- ──────────────────────────────────────────────────────
 -- Window management

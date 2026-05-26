@@ -26,11 +26,11 @@ hl.monitor({
 -- Re-apply HDMI config when the monitor is hotplugged
 hl.on("monitor.added", function(monitor)
     if monitor.name == "HDMI-A-1" then
-        hl.monitor({
-            output   = "HDMI-A-1",
-            mode     = "1920x1080@60",
-            position = "2313x999",
-            scale    = 1.0,
-        })
+        hl.exec_cmd("bash ~/.config/hypr/scripts/setup-hdmi.sh")
     end
+end)
+
+-- Re-apply HDMI config on every config reload
+hl.on("config.reloaded", function()
+    hl.exec_cmd("bash ~/.config/hypr/scripts/setup-hdmi.sh")
 end)

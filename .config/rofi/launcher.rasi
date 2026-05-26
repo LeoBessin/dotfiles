@@ -21,6 +21,7 @@
 
 window {
     width:            580px;
+    height:           680px;
     location:         center;
     anchor:           center;
     background-color: transparent;
@@ -28,14 +29,26 @@ window {
     border-color:     @border-col;
     border-radius:    16px;
     padding:          0px;
+    orientation:      vertical;
+    children:         [ textbox-header, mainbox ];
+}
+
+textbox-header {
+    expand:           false;
+    padding:          163px 0px;
+    font:             "JetBrains Mono 1";
+    background-image: url("/home/nexus/Pictures/Wallpaper/horizon.jpg", width);
+    background-color: transparent;
+    border-radius:    16px 16px 0px 0px;
+    str:              "";
 }
 
 mainbox {
     spacing:          0px;
     padding:          20px;
     margin:           0px;
-    background-color: transparent;
-    border-radius:    16px;
+    background-color: #1a1a2e8c;
+    border-radius:    0px 0px 16px 16px;
     children:         [ inputbar, listview ];
 }
 
@@ -64,22 +77,22 @@ entry {
     cursor:            text;
 }
 
-/* ── App list ───────────────────────────────────────── */
+/* ── App grid ───────────────────────────────────────── */
 listview {
-    lines:        9;
-    columns:      1;
+    lines:        3;
+    columns:      4;
     scrollbar:    false;
-    spacing:      3px;
+    spacing:      6px;
     cycle:        true;
     fixed-height: true;
     background-color: transparent;
 }
 
 element {
-    padding:          9px 12px;
+    padding:          8px 4px;
     border-radius:    8px;
-    spacing:          13px;
-    orientation:      horizontal;
+    spacing:          4px;
+    orientation:      vertical;
     background-color: transparent;
     children:         [ element-icon, element-text ];
     cursor:           pointer;
@@ -93,14 +106,15 @@ element selected urgent { background-color: @bg-selected; text-color: @accent; }
 element selected active { background-color: @bg-selected; text-color: @accent-alt; }
 
 element-icon {
-    size:           22px;
-    vertical-align: 0.5;
+    size:             32px;
+    horizontal-align: 0.5;
 }
 
 element-text {
-    vertical-align: 0.5;
-    text-color:     inherit;
-    highlight:      bold #eb6f92;
+    horizontal-align: 0.5;
+    vertical-align:   0.5;
+    text-color:       inherit;
+    highlight:        bold #eb6f92;
 }
 
 /* ── No results message ─────────────────────────────── */

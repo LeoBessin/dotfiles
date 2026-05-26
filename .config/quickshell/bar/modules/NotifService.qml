@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Quickshell
 import Quickshell.Services.Notifications
 
 Item {
@@ -13,6 +14,12 @@ Item {
         id: _server
         keepOnReload: true
 
+        persistenceSupported:     true
+        actionsSupported:         true
+        imageSupported:           true
+        bodyMarkupSupported:      true
+        bodyHyperlinksSupported:  true
+
         onNotification: (notif) => {
             notif.tracked = true
             notif.closed.connect(() => root._markDismissed(notif.id))
@@ -24,12 +31,18 @@ Item {
     property ListModel historyModel:    _historyModel
     property ListModel appGroupsModel:  _appGroupsModel
     property var _liveRefs:     ({})
+    property var _imageLocks:   ({})    // RetainableLocks keeping image data alive
     property var _collapsedApps: ({})    // persists collapse state by appName
     property int unreadCount:   0
     property bool centerOpen:   false
     property bool dnd:          false
     property var targetScreen:  null
     signal toastRequested(var toastData)
+
+    Component {
+        id: _lockComponent
+        RetainableLock { locked: true }
+    }
 
     ListModel { id: _historyModel }
     ListModel { id: _appGroupsModel }
@@ -65,21 +78,36 @@ Item {
     function _add(notif) {
         _liveRefs[notif.id] = notif
         var acts = []
+        var hasDefault = false
         try {
-            for (var i = 0; i < notif.actions.length; i++)
-                acts.push({ id: notif.actions[i].identifier, text: notif.actions[i].text })
+            for (var i = 0; i < notif.actions.length; i++) {
+                var act = notif.actions[i]
+                if (act.identifier === "default") {
+                    hasDefault = true
+                } else if (act.text !== "") {
+                    acts.push({ id: act.identifier, text: act.text })
+                }
+            }
         } catch(e) {}
 
         var data = {
             notifId:     notif.id,
             appName:     notif.appName  || "Unknown",
             appIcon:     notif.appIcon  || "",
+            image:       notif.image    || "",
             summary:     notif.summary  || "",
             body:        notif.body     || "",
             timeStr:     Qt.formatTime(new Date(), "h:mm ap"),
             actionsJson: JSON.stringify(acts),
+            hasDefault:  hasDefault,
             read:        false,
             dismissed:   false
+        }
+
+        // Keep notification alive so image URL stays valid in history
+        if (data.image !== "") {
+            var lock = _lockComponent.createObject(root, { object: notif })
+            _imageLocks[notif.id] = lock
         }
 
         if (!dnd) {
@@ -114,7 +142,8 @@ Item {
     }
 
     function _markDismissed(id) {
-        delete _liveRefs[id]
+        // Keep _liveRefs[id] alive so action buttons can still invoke after
+        // the sender (e.g. browser) closes the notification to suppress its own popup.
         for (var i = 0; i < _historyModel.count; i++) {
             if (_historyModel.get(i).notifId === id) {
                 var wasUnread = !_historyModel.get(i).read
@@ -125,6 +154,15 @@ Item {
                 if (wasUnread) _decrementGroupUnread(appName)
                 return
             }
+        }
+    }
+
+    function _releaseImageLock(id) {
+        var lock = _imageLocks[id]
+        if (lock) {
+            lock.locked = false
+            lock.destroy()
+            delete _imageLocks[id]
         }
     }
 
@@ -151,6 +189,7 @@ Item {
         var ref = _liveRefs[notifId]
         try { if (ref) ref.dismiss() } catch(e) {}
         delete _liveRefs[notifId]
+        _releaseImageLock(notifId)
         for (var i = 0; i < _historyModel.count; i++) {
             if (_historyModel.get(i).notifId === notifId) {
                 var wasUnread = !_historyModel.get(i).read
@@ -189,6 +228,7 @@ Item {
             try { _liveRefs[k].dismiss() } catch(e) {}
         }
         _liveRefs = {}
+        for (var k2 in _imageLocks) _releaseImageLock(parseInt(k2))
         _historyModel.clear()
         _appGroupsModel.clear()
         unreadCount = 0
@@ -202,6 +242,7 @@ Item {
                 var ref = _liveRefs[nid]
                 try { if (ref) ref.dismiss() } catch(e) {}
                 delete _liveRefs[nid]
+                _releaseImageLock(nid)
                 var wasUnread = !_historyModel.get(i).read
                 _historyModel.remove(i)
                 if (wasUnread && unreadCount > 0) unreadCount--

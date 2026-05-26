@@ -42,10 +42,12 @@ Item {
         notifId:     root._items.length > 0 ? root._items[0].notifId     : 0
         appName:     root._items.length > 0 ? root._items[0].appName     : root.appName
         appIcon:     root._items.length > 0 ? root._items[0].appIcon     : root.appIcon
+        image:       root._items.length > 0 ? root._items[0].image       : ""
         summary:     root._items.length > 0 ? root._items[0].summary     : ""
         body:        root._items.length > 0 ? root._items[0].body        : ""
         timeStr:     root._items.length > 0 ? root._items[0].timeStr     : ""
         actionsJson: root._items.length > 0 ? root._items[0].actionsJson : "[]"
+        hasDefault:  root._items.length > 0 ? root._items[0].hasDefault  : false
         read:        root._items.length > 0 ? root._items[0].read        : true
         dismissed:   root._items.length > 0 ? root._items[0].dismissed   : false
 
@@ -140,7 +142,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text:           ""
+                    text:           ""
                     font.family:    Theme.iconFamily
                     font.pixelSize: 11
                     color:          clearHdr.containsMouse ? Theme.bgSolid : Theme.fgDim
@@ -228,10 +230,12 @@ Item {
                 notifId:     root._items.length > 0 ? root._items[0].notifId     : 0
                 appName:     root._items.length > 0 ? root._items[0].appName     : root.appName
                 appIcon:     root._items.length > 0 ? root._items[0].appIcon     : root.appIcon
+                image:       root._items.length > 0 ? root._items[0].image       : ""
                 summary:     root._items.length > 0 ? root._items[0].summary     : ""
                 body:        root._items.length > 0 ? root._items[0].body        : ""
                 timeStr:     root._items.length > 0 ? root._items[0].timeStr     : ""
                 actionsJson: root._items.length > 0 ? root._items[0].actionsJson : "[]"
+                hasDefault:  root._items.length > 0 ? root._items[0].hasDefault  : false
                 read:        root._items.length > 0 ? root._items[0].read        : true
                 dismissed:   root._items.length > 0 ? root._items[0].dismissed   : false
 
@@ -267,10 +271,12 @@ Item {
                     notifId:     model.notifId
                     appName:     model.appName
                     appIcon:     model.appIcon
+                    image:       model.image
                     summary:     model.summary
                     body:        model.body
                     timeStr:     model.timeStr
                     actionsJson: model.actionsJson
+                    hasDefault:  model.hasDefault
                     read:        model.read
                     dismissed:   model.dismissed
 
