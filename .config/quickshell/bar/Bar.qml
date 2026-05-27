@@ -73,7 +73,7 @@ PanelWindow {
     // RIGHT — anchored to right edge
     RowLayout {
         anchors.right:        parent.right
-        anchors.rightMargin:  4
+        anchors.rightMargin:  8
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.widgetSpacing
 

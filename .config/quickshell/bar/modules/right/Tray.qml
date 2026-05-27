@@ -13,17 +13,22 @@ RowLayout {
     Repeater {
         model: SystemTray.items
 
-        delegate: Rectangle {
+        delegate: Item {
             id: trayItem
 
             property SystemTrayItem item: modelData
 
             implicitWidth:  Theme.iconSize + 8
             implicitHeight: Theme.barHeight
-            radius:         Theme.pillRadius
-            color:          itemHover.containsMouse ? Theme.bgHover : "transparent"
 
-            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+            Rectangle {
+                anchors.centerIn: parent
+                width:  parent.width
+                height: parent.height - 8
+                radius: Theme.pillRadius
+                color:  itemHover.containsMouse ? Theme.bgHover : "transparent"
+                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+            }
 
             IconImage {
                 anchors.centerIn: parent

@@ -1,4 +1,4 @@
-// left/IdleClock.qml — idle inhibitor toggle + clock + calendar popup on hover
+// left/IdleClock.qml — idle inhibitor toggle + clock
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -25,46 +25,6 @@ Item {
         precision: SystemClock.Minutes
     }
 
-    // ── Calendar popup ────────────────────────────────────────────────────
-    property bool calendarVisible: false
-
-    PopupWindow {
-        id: calendarPopup
-        visible:  root.calendarVisible
-        anchor.item:    clockWidget
-        anchor.edges:   Edges.Bottom
-        anchor.gravity: Edges.Bottom
-
-        implicitWidth:  260
-        implicitHeight: calendarContent.implicitHeight + 16
-        color:  "transparent"
-
-        Rectangle {
-            anchors.fill: parent
-            color:        Theme.bgPopup
-            radius:       Theme.radius
-            border.color: Qt.rgba(0.70, 0.62, 0.86, 0.18)
-            border.width: 1
-
-            CalendarView {
-                id: calendarContent
-                anchors {
-                    top:   parent.top
-                    left:  parent.left
-                    right: parent.right
-                    topMargin: 8
-                }
-            }
-
-            HoverHandler {
-                onHoveredChanged: {
-                    root._popupHovered = hovered
-                    if (!hovered) hideTimer.restart()
-                }
-            }
-        }
-    }
-
     // ── Layout: [inhibit btn] [clock widget] ─────────────────────────────
     RowLayout {
         id: row
@@ -72,14 +32,19 @@ Item {
         spacing:      Theme.widgetSpacing
 
         // Idle inhibitor toggle button
-        Rectangle {
+        Item {
             id: inhibitBtn
             implicitWidth:  28
             implicitHeight: Theme.barHeight
-            color:          inhibitHover.containsMouse ? Theme.bgHover : "transparent"
-            radius:         Theme.pillRadius
 
-            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+            Rectangle {
+                anchors.centerIn: parent
+                width:  parent.width
+                height: parent.height - 8
+                radius: Theme.pillRadius
+                color:  inhibitHover.containsMouse ? Theme.bgHover : "transparent"
+                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+            }
 
             Text {
                 anchors.centerIn: parent
@@ -101,15 +66,20 @@ Item {
             }
         }
 
-        // Clock widget (hover shows calendar)
-        Rectangle {
+        // Clock widget
+        Item {
             id: clockWidget
             implicitWidth:  clockContent.implicitWidth + Theme.widgetPad * 2
             implicitHeight: Theme.barHeight
-            color:          clockHover.containsMouse ? Theme.bgHover : "transparent"
-            radius:         Theme.pillRadius
 
-            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+            Rectangle {
+                anchors.centerIn: parent
+                width:  parent.width
+                height: parent.height - 8
+                radius: Theme.pillRadius
+                color:  clockHover.containsMouse ? Theme.bgHover : "transparent"
+                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+            }
 
             RowLayout {
                 id: clockContent
@@ -117,7 +87,7 @@ Item {
                 spacing: 5
 
                 Text {
-                    text:  "\ue8b5"   // Material Symbols: schedule (clock)
+                    text:  "\ue8b5"
                     font.family:    Theme.iconFamily
                     font.pixelSize: Theme.iconSize
                     color: clockHover.containsMouse ? Theme.accent : Theme.fgDim
@@ -142,27 +112,10 @@ Item {
 
             MouseArea {
                 id: clockHover
-                anchors.fill:  parent
-                hoverEnabled:  true
-                cursorShape:   Qt.PointingHandCursor
-                onEntered:     root.calendarVisible = true
-                onExited:      {
-                    // Delay hide so the popup itself can be hovered
-                    hideTimer.restart()
-                }
+                anchors.fill: parent
+                hoverEnabled: true
             }
         }
     }
 
-    Timer {
-        id: hideTimer
-        interval: 150
-        onTriggered: {
-            if (!root._popupHovered)
-                root.calendarVisible = false
-        }
-    }
-
-    // alias so hideTimer can check it — toggled by HoverHandler on the popup
-    property bool _popupHovered: false
 }

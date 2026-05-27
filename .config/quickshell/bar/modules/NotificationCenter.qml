@@ -91,7 +91,8 @@ PanelWindow {
             NumberAnimation { duration: Theme.animFast }
         }
 
-        color:        Qt.rgba(0.10, 0.09, 0.15, 0.55)
+        // color:        Qt.rgba(0.10, 0.09, 0.15, 0.55)
+        color:        Qt.rgba(0.10, 0.09, 0.15, 0.85)
         radius:       Theme.radius
         border.color: Qt.rgba(0.70, 0.62, 0.86, 0.20)
         border.width: 1

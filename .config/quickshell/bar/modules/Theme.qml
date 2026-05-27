@@ -7,7 +7,7 @@ QtObject {
     readonly property color accentDim:    "#7e57c2"   // deeper purple for active states
     readonly property color bg:           Qt.rgba(0.10, 0.10, 0.18, 0.55)
     readonly property color bgSolid:      "#1a1a2e"
-    readonly property color bgHover:      Qt.rgba(0.18, 0.17, 0.30, 0.85)
+    readonly property color bgHover:      Qt.rgba(1.0, 1.0, 1.0, 0.06)
     readonly property color bgPopup:      Qt.rgba(0.12, 0.11, 0.22, 0.92)
     readonly property color fg:           "#e0e0f0"
     readonly property color fgDim:        "#9090b0"

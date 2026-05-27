@@ -8,7 +8,7 @@ import QtQuick
 import QtQuick.Layouts
 import "."
 
-Rectangle {
+Item {
     id: root
 
     property alias content: contentLoader.sourceComponent
@@ -19,10 +19,17 @@ Rectangle {
 
     implicitHeight: Theme.barHeight
     implicitWidth:  contentLayout.implicitWidth + Theme.widgetPad * 2
-    radius:         Theme.pillRadius
-    color:          hovered ? Theme.bgHover : "transparent"
 
-    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+    // Visual pill — inset vertically so it stays inside the bar border
+    Rectangle {
+        anchors.centerIn: parent
+        width:  parent.width
+        height: parent.height - 8
+        radius: Theme.pillRadius
+        color:  hovered ? Theme.bgHover : "transparent"
+
+        Behavior on color { ColorAnimation { duration: Theme.animFast } }
+    }
 
     // Content
     Item {

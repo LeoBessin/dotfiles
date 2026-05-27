@@ -14,18 +14,23 @@ Item {
     property bool menuOpen: false
 
     // ── Trigger button ────────────────────────────────────────────────────
-    Rectangle {
+    Item {
         id: triggerBtn
         implicitWidth:  24 + Theme.widgetPad * 2
         implicitHeight: Theme.barHeight
-        radius:         Theme.pillRadius
-        color:          triggerHover.containsMouse ? Theme.bgHover : "transparent"
 
-        Behavior on color { ColorAnimation { duration: Theme.animFast } }
+        Rectangle {
+            anchors.centerIn: parent
+            width:  parent.width
+            height: parent.height - 8
+            radius: Theme.pillRadius
+            color:  triggerHover.containsMouse ? Theme.bgHover : "transparent"
+            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+        }
 
         Text {
             anchors.centerIn: parent
-            text:  "\ue8ac"    // Material Symbols: power_settings_new
+            text:  ""    // Material Symbols: power_settings_new
             font.family:    Theme.iconFamily
             font.pixelSize: Theme.iconSize - 2
             color: triggerHover.containsMouse ? Theme.red : Theme.fgDim
@@ -84,7 +89,7 @@ Item {
                 spacing: 4
 
                 PowerButton {
-                    icon:    "\ue9ba"   // logout
+                    icon:    ""   // logout
                     label:   "Log out"
                     iconColor: Theme.fg
                     command: ["bash", "-c", "loginctl terminate-user $USER"]
@@ -92,7 +97,7 @@ Item {
                 }
 
                 PowerButton {
-                    icon:    "\ue8d0"   // restart_alt
+                    icon:    ""   // restart_alt
                     label:   "Reboot"
                     iconColor: Theme.yellow
                     command: ["systemctl", "reboot"]
@@ -100,7 +105,7 @@ Item {
                 }
 
                 PowerButton {
-                    icon:    "\ue8ac"   // power_settings_new
+                    icon:    ""   // power_settings_new
                     label:   "Shutdown"
                     iconColor: Theme.red
                     command: ["systemctl", "poweroff"]
