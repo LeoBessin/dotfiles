@@ -44,6 +44,10 @@ PanelWindow {
                 claudeUsageFetcher.running = false
                 claudeUsageFetcher.running = true
             }
+            if (Date.now() - panelContent.copilotLastFetch > 120000) {
+                copilotUsageFetcher.running = false
+                copilotUsageFetcher.running = true
+            }
         } else {
             hideTimer.restart()
         }
@@ -180,11 +184,44 @@ PanelWindow {
         }
 
         // ── Claude usage state ────────────────────────────────────────────
-        property real   claudeFiveHour:  0
-        property real   claudeSevenDay:  0
-        property real   claudeCredits:   0
-        property bool   claudeLoading:   false
-        property real   claudeLastFetch: 0   // ms timestamp
+        property real   claudeFiveHour:        0
+        property real   claudeSevenDay:        0
+        property real   claudeCredits:         0
+        property string claudeFiveHourResetsAt: ""
+        property string claudeSevenDayResetsAt: ""
+        property bool   claudeLoading:         false
+        property real   claudeLastFetch:       0   // ms timestamp
+
+        // ── Copilot usage state ───────────────────────────────────────────
+        property real   copilotPremiumRemaining: 0
+        property real   copilotPremiumTotal:     300
+        property string copilotResetDate:        ""
+        property bool   copilotLoading:          false
+        property real   copilotLastFetch:        0   // ms timestamp
+
+        Process {
+            id: copilotUsageFetcher
+            command: ["bash", "-c",
+                "TOKEN=$(jq -r 'to_entries[0].value.oauth_token // empty' \"$HOME/.config/github-copilot/apps.json\"); " +
+                "curl -s -H \"Authorization: Bearer $TOKEN\" -H \"Editor-Version: vscode/1.90.0\" " +
+                "https://api.github.com/copilot_internal/user | " +
+                "jq -r '\"\\(.quota_snapshots.premium_interactions.remaining) \\(.quota_snapshots.premium_interactions.entitlement) \\(.quota_reset_date)\"'"
+            ]
+            onRunningChanged: {
+                panelContent.copilotLoading = running
+                if (!running) panelContent.copilotLastFetch = Date.now()
+            }
+            stdout: SplitParser {
+                onRead: (line) => {
+                    var m = line.match(/([\d.]+)\s+([\d.]+)\s+([\d-]+)/)
+                    if (m) {
+                        panelContent.copilotPremiumRemaining = parseFloat(m[1])
+                        panelContent.copilotPremiumTotal     = parseFloat(m[2])
+                        panelContent.copilotResetDate        = m[3]
+                    }
+                }
+            }
+        }
 
         Process {
             id: claudeUsageFetcher
@@ -199,11 +236,11 @@ PanelWindow {
             }
             stdout: SplitParser {
                 onRead: (line) => {
-                    var m5 = line.match(/"five_hour":\{"utilization":([\d.]+)/)
-                    var m7 = line.match(/"seven_day":\{"utilization":([\d.]+)/)
+                    var m5 = line.match(/"five_hour":\{"utilization":([\d.]+),"resets_at":"([^"]+)"/)
+                    var m7 = line.match(/"seven_day":\{"utilization":([\d.]+),"resets_at":"([^"]+)"/)
                     var mx = line.match(/"extra_usage":\{.*?"utilization":([\d.]+)/)
-                    if (m5) panelContent.claudeFiveHour = parseFloat(m5[1])
-                    if (m7) panelContent.claudeSevenDay = parseFloat(m7[1])
+                    if (m5) { panelContent.claudeFiveHour = parseFloat(m5[1]); panelContent.claudeFiveHourResetsAt = m5[2] }
+                    if (m7) { panelContent.claudeSevenDay = parseFloat(m7[1]); panelContent.claudeSevenDayResetsAt = m7[2] }
                     if (mx) panelContent.claudeCredits  = parseFloat(mx[1])
                 }
             }
@@ -214,7 +251,10 @@ PanelWindow {
             running: root.isActive
             repeat:  true
             triggeredOnStart: false
-            onTriggered: { claudeUsageFetcher.running = false; claudeUsageFetcher.running = true }
+            onTriggered: {
+                claudeUsageFetcher.running = false; claudeUsageFetcher.running = true
+                copilotUsageFetcher.running = false; copilotUsageFetcher.running = true
+            }
         }
 
         ColumnLayout {
@@ -603,17 +643,21 @@ PanelWindow {
                 }
             }
 
-            // ── Claude usage ──────────────────────────────────────────────
+            // ── AI Usage ──────────────────────────────────────────────────
             Rectangle {
+                id: aiUsageWidget
+                property int aiTab: 0   // 0=Claude, 1=Copilot
+
                 Layout.fillWidth: true
-                implicitHeight:   claudeInner.implicitHeight + 16
+                implicitHeight:   aiUsageInner.implicitHeight + 16
                 radius: Theme.pillRadius
                 color:  "#262625"
-                border.color: Theme.claude
+                border.color: aiTab === 0 ? Theme.claude : Theme.copilot
                 border.width: 1
+                Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
 
                 ColumnLayout {
-                    id: claudeInner
+                    id: aiUsageInner
                     anchors.left:        parent.left
                     anchors.right:       parent.right
                     anchors.top:         parent.top
@@ -622,41 +666,210 @@ PanelWindow {
                     anchors.topMargin:   8
                     spacing: 6
 
+                    // ── Provider tab selector ─────────────────────────────
                     RowLayout {
+                        spacing: 4
+
+                        Rectangle {
+                            property bool _active: aiUsageWidget.aiTab === 0
+                            implicitHeight: 26
+                            implicitWidth:  tabClaudeRow.implicitWidth + 16
+                            radius: 13
+                            color: _active ? Qt.rgba(0.80, 0.47, 0.36, 0.18) : "transparent"
+                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                            RowLayout {
+                                id: tabClaudeRow
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Image {
+                                    source: "../assets/claudecode-color.svg"
+                                    width: 14; height: 14
+                                    sourceSize: Qt.size(14, 14)
+                                }
+                                Text {
+                                    text: "Claude"
+                                    font.family:    Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize - 2
+                                    font.weight:    Font.Medium
+                                    color: aiUsageWidget.aiTab === 0 ? "white" : Theme.fgDim
+                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: aiUsageWidget.aiTab = 0
+                            }
+                        }
+
+                        Rectangle {
+                            property bool _active: aiUsageWidget.aiTab === 1
+                            implicitHeight: 26
+                            implicitWidth:  tabCopilotRow.implicitWidth + 16
+                            radius: 13
+                            color: _active ? Qt.rgba(0.949, 0.961, 0.953, 0.18) : "transparent"
+                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                            RowLayout {
+                                id: tabCopilotRow
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Image {
+                                    source: "../assets/githubcopilot-color.svg"
+                                    width: 14; height: 14
+                                    sourceSize: Qt.size(14, 14)
+                                }
+                                Text {
+                                    text: "Copilot"
+                                    font.family:    Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize - 2
+                                    font.weight:    Font.Medium
+                                    color: aiUsageWidget.aiTab === 1 ? Theme.copilot : Theme.fgDim
+                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: aiUsageWidget.aiTab = 1
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    // ── Claude content ────────────────────────────────────
+                    ColumnLayout {
+                        visible: aiUsageWidget.aiTab === 0
                         Layout.fillWidth: true
                         spacing: 6
 
-                        Image {
-                            source: "../assets/claudecode-color.svg"
-                            width:  22
-                            height: 22
-                            sourceSize: Qt.size(22, 22)
-                        }
-                        Text {
-                            text: "Claude Code"
-                            font.family:    Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
-                            font.weight:    Font.SemiBold
-                            color: "white"
+                        RowLayout {
                             Layout.fillWidth: true
-                        }
-                        Text {
-                            visible: panelContent.claudeLoading
-                            text: ""
-                            font.family:    Theme.iconFamily
-                            font.pixelSize: Theme.fontSize
-                            color: Qt.rgba(1, 1, 1, 0.60)
-                            RotationAnimator on rotation {
-                                running: panelContent.claudeLoading
-                                from: 0; to: 360; duration: 1000
-                                loops: Animation.Infinite
+                            spacing: 6
+
+                            Image {
+                                source: "../assets/claudecode-color.svg"
+                                width:  22
+                                height: 22
+                                sourceSize: Qt.size(22, 22)
                             }
+                            Text {
+                                text: "Claude Code"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize - 1
+                                font.weight:    Font.SemiBold
+                                color: "white"
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                visible: panelContent.claudeLoading
+                                text: ""
+                                font.family:    Theme.iconFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Qt.rgba(1, 1, 1, 0.60)
+                                RotationAnimator on rotation {
+                                    running: panelContent.claudeLoading
+                                    from: 0; to: 360; duration: 1000
+                                    loops: Animation.Infinite
+                                }
+                            }
+                        }
+
+                        ClaudeBar { label: "5h";      value: panelContent.claudeFiveHour }
+                        ClaudeBar { label: "7d";      value: panelContent.claudeSevenDay }
+                        ClaudeBar { label: "credits"; value: panelContent.claudeCredits }
+
+                        Text {
+                            visible: panelContent.claudeFiveHourResetsAt !== "" || panelContent.claudeSevenDayResetsAt !== ""
+                            text: {
+                                function fmt(iso) {
+                                    if (!iso) return ""
+                                    var d = new Date(iso)
+                                    return d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
+                                }
+                                var parts = []
+                                if (panelContent.claudeFiveHourResetsAt !== "") parts.push("5h resets " + fmt(panelContent.claudeFiveHourResetsAt))
+                                if (panelContent.claudeSevenDayResetsAt  !== "") parts.push("7d resets " + fmt(panelContent.claudeSevenDayResetsAt))
+                                return parts.join(" · ")
+                            }
+                            font.family:    Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 2
+                            color: Theme.fgDim
+                            Layout.fillWidth: true
                         }
                     }
 
-                    ClaudeBar { label: "5h";      value: panelContent.claudeFiveHour }
-                    ClaudeBar { label: "7d";      value: panelContent.claudeSevenDay }
-                    ClaudeBar { label: "credits"; value: panelContent.claudeCredits }
+                    // ── Copilot content ───────────────────────────────────
+                    ColumnLayout {
+                        visible: aiUsageWidget.aiTab === 1
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Image {
+                                source: "../assets/githubcopilot-color.svg"
+                                width:  22
+                                height: 22
+                                sourceSize: Qt.size(22, 22)
+                            }
+                            Text {
+                                text: "GitHub Copilot"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize - 1
+                                font.weight:    Font.SemiBold
+                                color: "white"
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                visible: panelContent.copilotLoading
+                                text: ""
+                                font.family:    Theme.iconFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Qt.rgba(1, 1, 1, 0.60)
+                                RotationAnimator on rotation {
+                                    running: panelContent.copilotLoading
+                                    from: 0; to: 360; duration: 1000
+                                    loops: Animation.Infinite
+                                }
+                            }
+                        }
+
+                        ClaudeBar {
+                            label: "premium"
+                            value: panelContent.copilotPremiumTotal > 0
+                                   ? (1 - panelContent.copilotPremiumRemaining / panelContent.copilotPremiumTotal) * 100
+                                   : 0
+                            fillColor: Theme.copilot
+                        }
+
+                        Text {
+                            text: {
+                                var rem   = Math.round(panelContent.copilotPremiumRemaining)
+                                var total = Math.round(panelContent.copilotPremiumTotal)
+                                var extra = ""
+                                if (panelContent.copilotResetDate !== "") {
+                                    var parts = panelContent.copilotResetDate.split("-")
+                                    var monthNames = ["Jan","Feb","Mar","Apr","May","Jun",
+                                                      "Jul","Aug","Sep","Oct","Nov","Dec"]
+                                    extra = " · resets " + monthNames[parseInt(parts[1]) - 1] + " " + parseInt(parts[2])
+                                }
+                                return rem + " of " + total + " remaining" + extra
+                            }
+                            font.family:    Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 2
+                            color: Theme.fgDim
+                            Layout.fillWidth: true
+                        }
+                    }
                 }
             }
 
@@ -702,8 +915,9 @@ PanelWindow {
 
     // ── Helper components ─────────────────────────────────────────────────
     component ClaudeBar: Item {
-        property string label: ""
-        property real   value: 0
+        property string label:     ""
+        property real   value:     0
+        property color  fillColor: Theme.claude
 
         Layout.fillWidth: true
         implicitHeight: barRow.implicitHeight
@@ -732,7 +946,7 @@ PanelWindow {
                     width:  Math.max(parent.radius * 2, (value / 100) * parent.width)
                     height: parent.height
                     radius: parent.radius
-                    color:  Theme.claude
+                    color:  fillColor
                     Behavior on width { NumberAnimation { duration: 400 } }
                 }
             }

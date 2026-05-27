@@ -15,6 +15,7 @@ QtObject {
     readonly property color green:        "#a5d6a7"
     readonly property color yellow:       "#fff176"
     readonly property color claude:       "#CC785C"   // Anthropic brand orange
+    readonly property color copilot:      "#F2F5F3"   // Copilot white
 
     // ── Geometry ─────────────────────────────────────────────────────────
     readonly property int barHeight:      36
