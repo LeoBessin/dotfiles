@@ -90,10 +90,17 @@ Item {
             }
         } catch(e) {}
 
+        var rawIcon  = notif.appIcon || ""
+        // Quickshell wraps absolute path icons as image://icon/?path=/tmp/...
+        // Those temp files are cleaned up by Chromium; swap to the XDG app icon instead.
+        var safeIcon = rawIcon.includes("/tmp/")
+                       ? (notif.appName || "").toLowerCase().replace(/ /g, "-")
+                       : rawIcon
+
         var data = {
             notifId:     notif.id,
             appName:     notif.appName  || "Unknown",
-            appIcon:     notif.appIcon  || "",
+            appIcon:     safeIcon,
             image:       notif.image    || "",
             summary:     notif.summary  || "",
             body:        notif.body     || "",

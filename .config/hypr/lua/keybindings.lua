@@ -73,10 +73,10 @@ hl.bind("XF86Assistant",      hl.dsp.exec_cmd("kitty --class ai-picker -e ai-cli
 hl.bind("ALT + SPACE",    hl.dsp.exec_cmd("pkill -x rofi || rofi -show drun -p 'Open'"),              { description = "application finder" })
 hl.bind(M .. " + TAB",   hl.dsp.exec_cmd("pkill -x rofi || rofi -show window"),             { description = "window switcher" })
 hl.bind(MS .. " + E",    hl.dsp.exec_cmd("pkill -x rofi || rofi -show filebrowser"),        { description = "file finder" })
-hl.bind(M .. " + COMMA", hl.dsp.exec_cmd("pkill -x rofi || rofimoji --files emojis"),         { description = "emoji picker" })
-hl.bind(M .. " + PERIOD", hl.dsp.exec_cmd("pkill -x rofi || rofimoji --files nerd_font"),    { description = "icon picker" })
-hl.bind(M .. " + V",     hl.dsp.exec_cmd("pkill -x rofi || cliphist list | rofi -dmenu -p 'Copy' -theme-str 'entry { placeholder: \"Search history...\"; }' | cliphist decode | wl-copy"), { description = "clipboard picker" })
-hl.bind(MS .. " + V",    hl.dsp.exec_cmd("pkill -x rofi || cliphist list | rofi -dmenu -p 'Copy' -theme-str 'entry { placeholder: \"Search history...\"; }' | cliphist decode | wl-copy"), { description = "clipboard manager" })
+hl.bind(M .. " + COMMA", hl.dsp.exec_cmd("pkill -x rofi || rofimoji --files emojis --selector-args '-theme /home/nexus/.config/rofi/list.rasi'"),         { description = "emoji picker" })
+hl.bind(M .. " + PERIOD", hl.dsp.exec_cmd("pkill -x rofi || rofimoji --files nerd_font --selector-args '-theme /home/nexus/.config/rofi/list.rasi'"),    { description = "icon picker" })
+hl.bind(M .. " + V",     hl.dsp.exec_cmd("pkill -x rofi || cliphist list | rofi -dmenu -p 'Copy' -theme ~/.config/rofi/list.rasi -theme-str 'entry { placeholder: \"Search history...\"; }' | cliphist decode | wl-copy"), { description = "clipboard picker" })
+hl.bind(MS .. " + V",    hl.dsp.exec_cmd("pkill -x rofi || cliphist list | rofi -dmenu -p 'Copy' -theme ~/.config/rofi/list.rasi -theme-str 'entry { placeholder: \"Search history...\"; }' | cliphist decode | wl-copy"), { description = "clipboard manager" })
 
 -- ──────────────────────────────────────────────────────
 -- Hardware controls
@@ -104,6 +104,7 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"
 -- ──────────────────────────────────────────────────────
 -- Utilities
 -- ──────────────────────────────────────────────────────
+hl.bind(M .. " + N",  hl.dsp.exec_cmd("qs msg -c bar notifications toggle \"$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name')\""), { description = "toggle notification center" })
 hl.bind(M .. " + K",  hl.dsp.exec_cmd("hyprctl switchxkblayout all next"),            { description = "next keyboard layout" })
 hl.bind(MC .. " + M", hl.dsp.exec_cmd("~/.config/hypr/scripts/window-mute.sh"),       { description = "mute active window audio" })
 

@@ -1,6 +1,10 @@
 singleton Theme 1.0 Theme.qml
 singleton NotifService 1.0 NotifService.qml
 singleton CaffeineState 1.0 CaffeineState.qml
+singleton UpdateService 1.0 UpdateService.qml
+singleton VolumeService 1.0 VolumeService.qml
+singleton BrightnessService 1.0 BrightnessService.qml
+singleton NetworkService 1.0 NetworkService.qml
 BarWidget 1.0 BarWidget.qml
 CalendarView 1.0 CalendarView.qml
 PowerButton 1.0 PowerButton.qml

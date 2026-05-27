@@ -195,7 +195,7 @@ Item {
                 text:           root.summary
                 font.family:    Theme.fontFamily
                 font.pixelSize: Theme.fontSize
-                font.weight:    Font.SemiBold
+                font.weight:    Font.DemiBold
                 color:          Theme.fg
                 wrapMode:       Text.WordWrap
             }

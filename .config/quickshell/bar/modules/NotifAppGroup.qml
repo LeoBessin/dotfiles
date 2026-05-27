@@ -83,7 +83,7 @@ Item {
             spacing: 6
 
             IconImage {
-                source:       root.appIcon !== "" ? (root.appIcon.startsWith("/") || root.appIcon.startsWith("image://") ? root.appIcon : "image://icon/" + root.appIcon) : ""
+                source:       root.appIcon !== "" ? (root.appIcon.startsWith("/") ? "file://" + root.appIcon : root.appIcon.startsWith("image://") ? root.appIcon : "image://icon/" + root.appIcon) : ""
                 implicitSize: 14
                 visible:      root.appIcon !== ""
             }

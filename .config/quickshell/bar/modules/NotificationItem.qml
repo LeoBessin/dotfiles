@@ -198,7 +198,7 @@ Rectangle {
                 text:  root.summary
                 font.family:    Theme.fontFamily
                 font.pixelSize: Theme.fontSize
-                font.weight:    Font.SemiBold
+                font.weight:    Font.DemiBold
                 color: root.read ? Theme.fgDim : Theme.fg
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
