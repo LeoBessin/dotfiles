@@ -6,6 +6,7 @@ import ".."
 
 BarWidget {
     id: root
+    interactive: false
 
     function fmtSpeed(bps) {
         if (bps >= 1048576) return (bps / 1048576).toFixed(1) + "M"
@@ -28,10 +29,7 @@ BarWidget {
             text:           root.wifiIcon()
             font.family:    Theme.iconFamily
             font.pixelSize: Theme.iconSize
-            color: NetworkService.connected
-                   ? (root.hovered ? Theme.accent : Theme.fg)
-                   : Theme.fgDim
-            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+            color: NetworkService.connected ? Theme.fg : Theme.fgDim
         }
 
         Column {

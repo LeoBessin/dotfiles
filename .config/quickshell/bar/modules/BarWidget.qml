@@ -12,7 +12,8 @@ Item {
     id: root
 
     property alias content: contentLoader.sourceComponent
-    property bool  hovered: mouseArea.containsMouse
+    property bool  interactive: true
+    property bool  hovered: interactive && mouseArea.containsMouse
     signal clicked
     signal rightClicked
     signal scrolled(int delta)
@@ -47,8 +48,9 @@ Item {
     MouseArea {
         id: mouseArea
         anchors.fill:  parent
-        hoverEnabled:  true
-        cursorShape:   Qt.PointingHandCursor
+        enabled:       root.interactive
+        hoverEnabled:  root.interactive
+        cursorShape:   root.interactive ? Qt.PointingHandCursor : Qt.ArrowCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
         onClicked: (mouse) => {

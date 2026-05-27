@@ -7,6 +7,7 @@ import ".."
 
 BarWidget {
     id: root
+    interactive: false
 
     property UPowerDevice bat: UPower.displayDevice
 
@@ -48,7 +49,7 @@ BarWidget {
             text:  root.batteryIcon()
             font.family:    Theme.iconFamily
             font.pixelSize: Theme.iconSize
-            color: root.hovered ? Theme.accent : root.batteryColor()
+            color: root.batteryColor()
             Behavior on color { ColorAnimation { duration: Theme.animFast } }
         }
 

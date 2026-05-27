@@ -72,15 +72,6 @@ Item {
             implicitWidth:  clockContent.implicitWidth + Theme.widgetPad * 2
             implicitHeight: Theme.barHeight
 
-            Rectangle {
-                anchors.centerIn: parent
-                width:  parent.width
-                height: parent.height - 8
-                radius: Theme.pillRadius
-                color:  clockHover.containsMouse ? Theme.bgHover : "transparent"
-                Behavior on color { ColorAnimation { duration: Theme.animFast } }
-            }
-
             RowLayout {
                 id: clockContent
                 anchors.centerIn: parent
@@ -90,8 +81,7 @@ Item {
                     text:  "\ue8b5"
                     font.family:    Theme.iconFamily
                     font.pixelSize: Theme.iconSize
-                    color: clockHover.containsMouse ? Theme.accent : Theme.fgDim
-                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                    color: Theme.fgDim
                 }
 
                 Text {
@@ -110,11 +100,6 @@ Item {
                 }
             }
 
-            MouseArea {
-                id: clockHover
-                anchors.fill: parent
-                hoverEnabled: true
-            }
         }
     }
 
