@@ -40,6 +40,10 @@ PanelWindow {
             hideTimer.stop()
             markReadTimer.restart()
             panelContent.activeTab = 0
+            if (Date.now() - panelContent.claudeLastFetch > 120000) {
+                claudeUsageFetcher.running = false
+                claudeUsageFetcher.running = true
+            }
         } else {
             hideTimer.restart()
         }
@@ -173,6 +177,44 @@ PanelWindow {
             id: brightSetSettings
             command: ["brightnessctl", "set", "50%"]
             onExited: brightGetCurrent.running = true
+        }
+
+        // ── Claude usage state ────────────────────────────────────────────
+        property real   claudeFiveHour:  0
+        property real   claudeSevenDay:  0
+        property real   claudeCredits:   0
+        property bool   claudeLoading:   false
+        property real   claudeLastFetch: 0   // ms timestamp
+
+        Process {
+            id: claudeUsageFetcher
+            command: ["bash", "-c",
+                "TOKEN=$(jq -r '.claudeAiOauth.accessToken // empty' \"$HOME/.claude/.credentials.json\"); " +
+                "curl -s -H \"Authorization: Bearer $TOKEN\" -H \"anthropic-beta: oauth-2025-04-20\" " +
+                "https://api.anthropic.com/api/oauth/usage"
+            ]
+            onRunningChanged: {
+                panelContent.claudeLoading = running
+                if (!running) panelContent.claudeLastFetch = Date.now()
+            }
+            stdout: SplitParser {
+                onRead: (line) => {
+                    var m5 = line.match(/"five_hour":\{"utilization":([\d.]+)/)
+                    var m7 = line.match(/"seven_day":\{"utilization":([\d.]+)/)
+                    var mx = line.match(/"extra_usage":\{.*?"utilization":([\d.]+)/)
+                    if (m5) panelContent.claudeFiveHour = parseFloat(m5[1])
+                    if (m7) panelContent.claudeSevenDay = parseFloat(m7[1])
+                    if (mx) panelContent.claudeCredits  = parseFloat(mx[1])
+                }
+            }
+        }
+
+        Timer {
+            interval: 300000
+            running: root.isActive
+            repeat:  true
+            triggeredOnStart: false
+            onTriggered: { claudeUsageFetcher.running = false; claudeUsageFetcher.running = true }
         }
 
         ColumnLayout {
@@ -561,6 +603,63 @@ PanelWindow {
                 }
             }
 
+            // ── Claude usage ──────────────────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight:   claudeInner.implicitHeight + 16
+                radius: Theme.pillRadius
+                color:  "#262625"
+                border.color: Theme.claude
+                border.width: 1
+
+                ColumnLayout {
+                    id: claudeInner
+                    anchors.left:        parent.left
+                    anchors.right:       parent.right
+                    anchors.top:         parent.top
+                    anchors.leftMargin:  12
+                    anchors.rightMargin: 12
+                    anchors.topMargin:   8
+                    spacing: 6
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Image {
+                            source: "../assets/claudecode-color.svg"
+                            width:  22
+                            height: 22
+                            sourceSize: Qt.size(22, 22)
+                        }
+                        Text {
+                            text: "Claude Code"
+                            font.family:    Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 1
+                            font.weight:    Font.SemiBold
+                            color: "white"
+                            Layout.fillWidth: true
+                        }
+                        Text {
+                            visible: panelContent.claudeLoading
+                            text: ""
+                            font.family:    Theme.iconFamily
+                            font.pixelSize: Theme.fontSize
+                            color: Qt.rgba(1, 1, 1, 0.60)
+                            RotationAnimator on rotation {
+                                running: panelContent.claudeLoading
+                                from: 0; to: 360; duration: 1000
+                                loops: Animation.Infinite
+                            }
+                        }
+                    }
+
+                    ClaudeBar { label: "5h";      value: panelContent.claudeFiveHour }
+                    ClaudeBar { label: "7d";      value: panelContent.claudeSevenDay }
+                    ClaudeBar { label: "credits"; value: panelContent.claudeCredits }
+                }
+            }
+
             // ── Bottom tab bar ────────────────────────────────────────────
             Rectangle {
                 Layout.fillWidth: true
@@ -602,6 +701,53 @@ PanelWindow {
     }
 
     // ── Helper components ─────────────────────────────────────────────────
+    component ClaudeBar: Item {
+        property string label: ""
+        property real   value: 0
+
+        Layout.fillWidth: true
+        implicitHeight: barRow.implicitHeight
+
+        RowLayout {
+            id: barRow
+            anchors.left:  parent.left
+            anchors.right: parent.right
+            spacing: 6
+
+            Text {
+                text: label
+                font.family:    Theme.fontFamily
+                font.pixelSize: Theme.fontSize - 2
+                color: Qt.rgba(1, 1, 1, 0.70)
+                Layout.preferredWidth: 44
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 4
+                radius: 2
+                color:  Qt.rgba(1, 1, 1, 0.25)
+
+                Rectangle {
+                    width:  Math.max(parent.radius * 2, (value / 100) * parent.width)
+                    height: parent.height
+                    radius: parent.radius
+                    color:  Theme.claude
+                    Behavior on width { NumberAnimation { duration: 400 } }
+                }
+            }
+
+            Text {
+                text: Math.round(value) + "%"
+                font.family:    Theme.monoFamily
+                font.pixelSize: Theme.fontSize - 2
+                color: "white"
+                Layout.preferredWidth: 32
+                horizontalAlignment: Text.AlignRight
+            }
+        }
+    }
+
     component CaffeinePill: Rectangle {
         property string label
         property bool   isActive: false
