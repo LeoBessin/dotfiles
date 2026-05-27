@@ -107,6 +107,9 @@ PanelWindow {
         property real settingsBrightness:    50
         property int  settingsBrightnessMax: 100
 
+        property ListModel wallpaperModel: ListModel {}
+        property string    currentWallpaper: ""
+
         // ── Settings tab: volume state ────────────────────────────────────
         function refreshVolume() {
             volumeFetcherSettings.running = false
@@ -182,6 +185,33 @@ PanelWindow {
             id: brightSetSettings
             command: ["brightnessctl", "set", "50%"]
             onExited: brightGetCurrent.running = true
+        }
+
+        Process {
+            id: wallpaperLister
+            command: ["sh", "-c",
+                "find \"$HOME/.local/share/wallpapers\" -maxdepth 1 -type f " +
+                "\\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) " +
+                "| sort"
+            ]
+            stdout: SplitParser {
+                onRead: (line) => {
+                    if (line.trim() !== "")
+                        panelContent.wallpaperModel.append({ path: line.trim() })
+                }
+            }
+        }
+
+        Process {
+            id: wallpaperCurrentReader
+            command: ["sh", "-c", "cat \"$HOME/.local/share/wallpapers/.current\" 2>/dev/null || true"]
+            stdout: SplitParser {
+                onRead: (line) => { if (line.trim() !== "") panelContent.currentWallpaper = line.trim() }
+            }
+        }
+
+        Process {
+            id: wallpaperApplier
         }
 
         // ── Claude usage state ────────────────────────────────────────────
@@ -504,7 +534,20 @@ PanelWindow {
                     anchors.fill: parent
                     visible: panelContent.activeTab === 3
 
+                    onVisibleChanged: {
+                        if (visible) {
+                            wallpaperCurrentReader.running = false
+                            wallpaperCurrentReader.running = true
+                            if (panelContent.wallpaperModel.count === 0) {
+                                wallpaperLister.running = false
+                                wallpaperLister.running = true
+                            }
+                        }
+                    }
+
+                    // ── Top: volume + brightness ──────────────────────────
                     ColumnLayout {
+                        id: settingsTop
                         anchors {
                             top:   parent.top
                             left:  parent.left
@@ -596,17 +639,124 @@ PanelWindow {
                                 brightSetSettings.running          = true
                             }
                         }
+                    }
 
-                        // Divider
+                    // ── Middle: wallpaper grid ────────────────────────────
+                    Item {
+                        anchors {
+                            top:          settingsTop.bottom
+                            bottom:       settingsBottom.top
+                            left:         parent.left
+                            right:        parent.right
+                            topMargin:    10
+                            bottomMargin: 10
+                        }
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 6
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                Text {
+                                    text: ""
+                                    font.family:    Theme.iconFamily
+                                    font.pixelSize: Theme.iconSize
+                                    color: Theme.fg
+                                }
+                                Text {
+                                    text: "Wallpaper"
+                                    font.family:    Theme.fontFamily
+                                    font.pixelSize: Theme.fontSize
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            GridView {
+                                id: wallpaperGrid
+                                Layout.fillWidth:  true
+                                Layout.fillHeight: true
+                                clip: true
+                                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                                property real thumbW: Math.floor(width / 3) - 4
+                                property real thumbH: Math.round(thumbW * 9 / 16)
+
+                                cellWidth:  Math.floor(width / 3)
+                                cellHeight: Math.round(Math.floor(width / 3) * 9 / 16) + 4
+
+                                model: panelContent.wallpaperModel
+
+                                delegate: Item {
+                                    required property var model
+                                    required property int index
+
+                                    width:  wallpaperGrid.cellWidth
+                                    height: wallpaperGrid.cellHeight
+
+                                    Rectangle {
+                                        property bool isCurrent: model.path === panelContent.currentWallpaper
+
+                                        anchors.fill:    parent
+                                        anchors.margins: 2
+                                        radius: Theme.pillRadius
+                                        clip:   true
+                                        border.color: isCurrent ? Theme.accent : "transparent"
+                                        border.width: isCurrent ? 2 : 0
+
+                                        Image {
+                                            anchors.fill:    parent
+                                            anchors.margins: parent.isCurrent ? 2 : 0
+                                            source:          "file://" + model.path
+                                            sourceSize:      Qt.size(wallpaperGrid.thumbW, wallpaperGrid.thumbH)
+                                            fillMode:        Image.PreserveAspectCrop
+                                            asynchronous:    true
+                                            smooth:          true
+                                            mipmap:          true
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape:  Qt.PointingHandCursor
+                                            onClicked: {
+                                                var p = model.path
+                                                panelContent.currentWallpaper = p
+                                                wallpaperApplier.command = [
+                                                    "sh", "-c",
+                                                    "exec \"$HOME/.local/bin/set-wallpaper\" \"$1\"",
+                                                    "sh", p
+                                                ]
+                                                wallpaperApplier.running = false
+                                                wallpaperApplier.running = true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Bottom: power buttons ─────────────────────────────
+                    ColumnLayout {
+                        id: settingsBottom
+                        anchors {
+                            bottom: parent.bottom
+                            left:   parent.left
+                            right:  parent.right
+                        }
+                        spacing: 10
+
                         Rectangle {
                             Layout.fillWidth: true
                             height: 1
                             color:  Qt.rgba(0.70, 0.62, 0.86, 0.15)
                         }
 
-                        // Power buttons 2×2
                         GridLayout {
-                            Layout.fillWidth: true
+                            width:         parent.width
                             columns:       2
                             rowSpacing:    6
                             columnSpacing: 6

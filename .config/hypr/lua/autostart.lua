@@ -6,7 +6,7 @@ hl.on("hyprland.start", function()
 
     -- Wallpaper daemon
     hl.exec_cmd("awww-daemon")
-    hl.exec_cmd("awww img ~/Pictures/Wallpaper/horizon.jpg")
+    hl.exec_cmd("sh -c 'awww img \"$(cat ~/.local/share/wallpapers/.current 2>/dev/null || echo ~/.local/share/wallpapers/horizon.jpg)\"'")
 
     -- Idle / lock manager
     hl.exec_cmd("hypridle")

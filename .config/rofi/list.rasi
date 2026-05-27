@@ -1,6 +1,6 @@
 /**
- * Rofi launcher — Windows app launcher style (Wintoys-inspired)
- * Colors: Rose Pine
+ * Rofi list theme — clipboard, emoji, icon pickers
+ * Same style as launcher.rasi, list layout instead of grid
  */
 
 * {
@@ -13,7 +13,7 @@
     accent:      #eb6f92;
     accent-alt:  #c4a7e7;
 
-    font:             "JetBrains Mono 12";
+    font:             "JetBrains Mono 10";
     background-color: transparent;
     text-color:       @fg;
     border-color:     @border-col;
@@ -71,29 +71,29 @@ prompt {
 }
 
 entry {
-    placeholder:       "Search apps...";
+    placeholder:       "Search...";
     placeholder-color: @fg-dim;
     text-color:        @fg;
     vertical-align:    0.5;
     cursor:            text;
 }
 
-/* ── App grid ───────────────────────────────────────── */
+/* ── List ───────────────────────────────────────────── */
 listview {
-    lines:        3;
-    columns:      4;
-    scrollbar:    false;
-    spacing:      6px;
-    cycle:        true;
-    fixed-height: true;
+    lines:            8;
+    columns:          1;
+    scrollbar:        false;
+    spacing:          4px;
+    cycle:            true;
+    fixed-height:     true;
     background-color: transparent;
 }
 
 element {
-    padding:          8px 4px;
+    padding:          8px 10px;
     border-radius:    8px;
-    spacing:          4px;
-    orientation:      vertical;
+    spacing:          10px;
+    orientation:      horizontal;
     background-color: transparent;
     children:         [ element-icon, element-text ];
     cursor:           pointer;
@@ -107,12 +107,12 @@ element selected urgent { background-color: @bg-selected; text-color: @accent; }
 element selected active { background-color: @bg-selected; text-color: @accent-alt; }
 
 element-icon {
-    size:             32px;
-    horizontal-align: 0.5;
+    size:           24px;
+    vertical-align: 0.5;
 }
 
 element-text {
-    horizontal-align: 0.5;
+    horizontal-align: 0;
     vertical-align:   0.5;
     text-color:       inherit;
     highlight:        bold #eb6f92;

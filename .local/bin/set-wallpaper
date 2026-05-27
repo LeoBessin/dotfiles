@@ -1,0 +1,23 @@
+#!/bin/sh
+# Apply a wallpaper and sync it to rofi, hyprlock, and sddm.
+# Usage: set-wallpaper /path/to/image.jpg
+set -e
+
+p="$1"
+
+# Apply via awww
+awww img --transition-type wave "$p"
+
+# Persist chosen path
+printf '%s' "$p" > "$HOME/.local/share/wallpapers/.current"
+
+# Copy for SDDM (nexus:sddm 750 dir — sddm group can read, no sudo needed)
+cp "$p" /var/lib/sddm-wallpaper/current.jpg
+
+# Update rofi backgrounds
+for rasi in "$HOME/.config/rofi/launcher.rasi" "$HOME/.config/rofi/list.rasi"; do
+    sed -i "s|background-image: url(\"[^\"]*\", width)|background-image: url(\"$p\", width)|g" "$rasi"
+done
+
+# Update hyprlock background path
+sed -i "s|^    path = .*|    path = $p|" "$HOME/.config/hypr/hyprlock.conf"
