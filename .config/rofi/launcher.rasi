@@ -38,7 +38,7 @@ textbox-header {
     expand:           false;
     padding:          161px 0px;
     font:             "JetBrains Mono 1";
-    background-image: url("/home/nexus/.local/share/wallpapers/horizon.jpg", width);
+    background-image: url("/home/nexus/.local/share/wallpapers/walls-catppuccin-mocha/horizon.jpg", width);
     background-color: transparent;
     border-radius:    16px 16px 0px 0px;
     str:              "";

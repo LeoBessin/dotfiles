@@ -110,6 +110,19 @@ PanelWindow {
 
         property ListModel wallpaperModel: ListModel {}
         property string    currentWallpaper: ""
+        property string    wallpaperRootDir:    ""
+        property string    wallpaperCurrentDir: ""
+
+        function loadWallpaperDir(dir) {
+            wallpaperCurrentDir = dir
+            wallpaperModel.clear()
+            wallpaperLister.command = ["sh", "-c",
+                "find \"" + dir + "\" -maxdepth 1 -mindepth 1 -type d -not -name '.*' | sort | sed 's|^|DIR:|';" +
+                "find \"" + dir + "\" -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) | sort | sed 's|^|FILE:|'"
+            ]
+            wallpaperLister.running = false
+            wallpaperLister.running = true
+        }
 
         // ── Settings tab: volume state ────────────────────────────────────
         function refreshVolume() {
@@ -119,8 +132,9 @@ PanelWindow {
 
         Component.onCompleted: {
             refreshVolume()
-            brightGetCurrent.running = true
-            brightGetMax.running     = true
+            brightGetCurrent.running     = true
+            brightGetMax.running         = true
+            wallpaperRootResolver.running = true
         }
 
         onActiveTabChanged: {
@@ -190,15 +204,11 @@ PanelWindow {
 
         Process {
             id: wallpaperLister
-            command: ["sh", "-c",
-                "find \"$HOME/.local/share/wallpapers\" -maxdepth 1 -type f " +
-                "\\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) " +
-                "| sort"
-            ]
             stdout: SplitParser {
                 onRead: (line) => {
-                    if (line.trim() !== "")
-                        panelContent.wallpaperModel.append({ path: line.trim() })
+                    var l = line.trim()
+                    if (l.startsWith("DIR:"))  panelContent.wallpaperModel.append({ path: l.slice(4), isDir: true  })
+                    if (l.startsWith("FILE:")) panelContent.wallpaperModel.append({ path: l.slice(5), isDir: false })
                 }
             }
         }
@@ -213,6 +223,20 @@ PanelWindow {
 
         Process {
             id: wallpaperApplier
+        }
+
+        Process {
+            id: wallpaperRootResolver
+            command: ["sh", "-c", "echo \"$HOME/.local/share/wallpapers\""]
+            stdout: SplitParser {
+                onRead: (line) => {
+                    if (line.trim() !== "") panelContent.wallpaperRootDir = line.trim()
+                }
+            }
+            onExited: {
+                if (panelContent.activeTab === 3 && panelContent.wallpaperModel.count === 0)
+                    panelContent.loadWallpaperDir(panelContent.wallpaperRootDir)
+            }
         }
 
         // ── Claude usage state ────────────────────────────────────────────
@@ -539,9 +563,11 @@ PanelWindow {
                         if (visible) {
                             wallpaperCurrentReader.running = false
                             wallpaperCurrentReader.running = true
-                            if (panelContent.wallpaperModel.count === 0) {
-                                wallpaperLister.running = false
-                                wallpaperLister.running = true
+                            if (panelContent.wallpaperRootDir === "") {
+                                wallpaperRootResolver.running = false
+                                wallpaperRootResolver.running = true
+                            } else if (panelContent.wallpaperModel.count === 0) {
+                                panelContent.loadWallpaperDir(panelContent.wallpaperRootDir)
                             }
                         }
                     }
@@ -659,16 +685,51 @@ PanelWindow {
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 8
+                                spacing: 6
+
+                                Rectangle {
+                                    visible: panelContent.wallpaperCurrentDir !== ""
+                                             && panelContent.wallpaperCurrentDir !== panelContent.wallpaperRootDir
+                                    width: 22; height: 22
+                                    radius: Theme.pillRadius
+                                    color: backWallMouse.containsMouse ? Theme.bgHover : "transparent"
+                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: ""
+                                        font.family:    Theme.iconFamily
+                                        font.pixelSize: Theme.iconSize - 2
+                                        color: Theme.fg
+                                    }
+                                    MouseArea {
+                                        id: backWallMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape:  Qt.PointingHandCursor
+                                        onClicked: {
+                                            var par = panelContent.wallpaperCurrentDir.substring(
+                                                0, panelContent.wallpaperCurrentDir.lastIndexOf('/'))
+                                            var dest = (par.length > 0 && par.startsWith(panelContent.wallpaperRootDir))
+                                                       ? par : panelContent.wallpaperRootDir
+                                            panelContent.loadWallpaperDir(dest)
+                                        }
+                                    }
+                                }
 
                                 Text {
+                                    visible: panelContent.wallpaperCurrentDir === ""
+                                             || panelContent.wallpaperCurrentDir === panelContent.wallpaperRootDir
                                     text: ""
                                     font.family:    Theme.iconFamily
                                     font.pixelSize: Theme.iconSize
                                     color: Theme.fg
                                 }
+
                                 Text {
-                                    text: "Wallpaper"
+                                    text: (panelContent.wallpaperCurrentDir !== ""
+                                           && panelContent.wallpaperCurrentDir !== panelContent.wallpaperRootDir)
+                                          ? panelContent.wallpaperCurrentDir.split("/").pop()
+                                          : "Wallpaper"
                                     font.family:    Theme.fontFamily
                                     font.pixelSize: Theme.fontSize
                                     color: Theme.fg
@@ -698,7 +759,50 @@ PanelWindow {
                                     width:  wallpaperGrid.cellWidth
                                     height: wallpaperGrid.cellHeight
 
+                                    // Directory card
                                     Rectangle {
+                                        visible: model.isDir
+                                        anchors.fill:    parent
+                                        anchors.margins: 2
+                                        radius: Theme.pillRadius
+                                        clip:   true
+                                        color:  dirMouse.containsMouse ? Theme.bgHover : Qt.rgba(0.20, 0.18, 0.30, 0.80)
+                                        Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: 4
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: ""
+                                                font.family:    Theme.iconFamily
+                                                font.pixelSize: Theme.iconSize + 6
+                                                color: Theme.accent
+                                            }
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: model.path.split("/").pop()
+                                                font.family:    Theme.fontFamily
+                                                font.pixelSize: Theme.fontSize - 2
+                                                color: Theme.fg
+                                                elide: Text.ElideRight
+                                                width: wallpaperGrid.thumbW - 8
+                                                horizontalAlignment: Text.AlignHCenter
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: dirMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape:  Qt.PointingHandCursor
+                                            onClicked:    panelContent.loadWallpaperDir(model.path)
+                                        }
+                                    }
+
+                                    // Image card
+                                    Rectangle {
+                                        visible: !model.isDir
                                         property bool isCurrent: model.path === panelContent.currentWallpaper
 
                                         anchors.fill:    parent
