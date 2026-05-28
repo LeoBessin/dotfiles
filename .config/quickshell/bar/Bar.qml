@@ -21,9 +21,10 @@ PanelWindow {
         right: true
     }
 
-    // ExclusionMode.Normal doesn't fire with 3-edge anchors; set the zone explicitly
-    exclusionMode: ExclusionMode.Exclusive
+    // ExclusionMode.Normal doesn't fire with 3-edge anchors; set the zone explicitly.
+    // Assigned in onCompleted to avoid a transient "undefined" binding warning at scene init.
     exclusiveZone: Theme.barHeight + 6
+    Component.onCompleted: exclusionMode = ExclusionMode.Exclusive
 
     // Layer-shell positioning
     WlrLayershell.layer:    WlrLayer.Top
@@ -44,9 +45,6 @@ PanelWindow {
         border.color: Qt.rgba(0.70, 0.62, 0.86, 0.25)
         border.width: 1
     }
-
-    // Background blur via attached property
-    BackgroundEffect.blurRegion: Region { item: barBg }
 
     // ── Three-section layout ─────────────────────────────────────────────
 
@@ -85,6 +83,5 @@ PanelWindow {
         Tray       {}
         Battery       {}
         Notifications { barScreen: root.screen }
-        Power         {}
     }
 }

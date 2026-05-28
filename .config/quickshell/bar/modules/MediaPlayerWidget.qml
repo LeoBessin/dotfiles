@@ -121,7 +121,7 @@ Item {
                     text:           root.player ? (root.player.trackTitle || "Unknown") : ""
                     font.family:    Theme.fontFamily
                     font.pixelSize: Theme.fontSize
-                    font.weight:    Font.SemiBold
+                    font.weight:    Font.DemiBold
                     color:          Theme.fg
                     elide:          Text.ElideRight
                     Layout.fillWidth: true

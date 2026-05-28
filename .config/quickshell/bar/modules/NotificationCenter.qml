@@ -19,7 +19,6 @@ PanelWindow {
 
     property bool isActive: NotifService.centerOpen && NotifService.targetScreen === modelData
 
-    exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer:         WlrLayer.Overlay
     WlrLayershell.namespace:     "quickshell-notif-center"
     WlrLayershell.keyboardFocus: root.isActive
@@ -29,10 +28,12 @@ PanelWindow {
     color: "transparent"
     surfaceFormat.opaque: false
 
-    BackgroundEffect.blurRegion: Region { item: panelContent }
+    Component.onCompleted: exclusionMode = ExclusionMode.Ignore
 
     visible: false
     onVisibleChanged: if (!visible && root.isActive) NotifService.centerOpen = false
+
+    readonly property int usageCacheMs: 60000
 
     onIsActiveChanged: {
         if (root.isActive) {
@@ -40,11 +41,11 @@ PanelWindow {
             hideTimer.stop()
             markReadTimer.restart()
             panelContent.activeTab = 0
-            if (Date.now() - panelContent.claudeLastFetch > 120000) {
+            if (Date.now() - panelContent.claudeLastFetch > root.usageCacheMs) {
                 claudeUsageFetcher.running = false
                 claudeUsageFetcher.running = true
             }
-            if (Date.now() - panelContent.copilotLastFetch > 120000) {
+            if (Date.now() - panelContent.copilotLastFetch > root.usageCacheMs) {
                 copilotUsageFetcher.running = false
                 copilotUsageFetcher.running = true
             }
@@ -305,7 +306,7 @@ PanelWindow {
                         : "Settings"
                     font.family:    Theme.fontFamily
                     font.pixelSize: Theme.fontSize + 1
-                    font.weight:    Font.SemiBold
+                    font.weight:    Font.DemiBold
                     color: Theme.fg
                     Layout.fillWidth: true
                 }
@@ -914,7 +915,7 @@ PanelWindow {
                                 text: "Claude Code"
                                 font.family:    Theme.fontFamily
                                 font.pixelSize: Theme.fontSize - 1
-                                font.weight:    Font.SemiBold
+                                font.weight:    Font.DemiBold
                                 color: "white"
                                 Layout.fillWidth: true
                             }
@@ -939,14 +940,19 @@ PanelWindow {
                         Text {
                             visible: panelContent.claudeFiveHourResetsAt !== "" || panelContent.claudeSevenDayResetsAt !== ""
                             text: {
-                                function fmt(iso) {
+                                function fmtTime(iso) {
                                     if (!iso) return ""
                                     var d = new Date(iso)
                                     return d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
                                 }
+                                function fmtDayTime(iso) {
+                                    if (!iso) return ""
+                                    var d = new Date(iso)
+                                    return d.toLocaleDateString([], {weekday: "short"}) + " " + d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
+                                }
                                 var parts = []
-                                if (panelContent.claudeFiveHourResetsAt !== "") parts.push("5h resets " + fmt(panelContent.claudeFiveHourResetsAt))
-                                if (panelContent.claudeSevenDayResetsAt  !== "") parts.push("7d resets " + fmt(panelContent.claudeSevenDayResetsAt))
+                                if (panelContent.claudeFiveHourResetsAt !== "") parts.push("5h resets " + fmtTime(panelContent.claudeFiveHourResetsAt))
+                                if (panelContent.claudeSevenDayResetsAt  !== "") parts.push("7d resets " + fmtDayTime(panelContent.claudeSevenDayResetsAt))
                                 return parts.join(" · ")
                             }
                             font.family:    Theme.fontFamily
@@ -976,7 +982,7 @@ PanelWindow {
                                 text: "GitHub Copilot"
                                 font.family:    Theme.fontFamily
                                 font.pixelSize: Theme.fontSize - 1
-                                font.weight:    Font.SemiBold
+                                font.weight:    Font.DemiBold
                                 color: "white"
                                 Layout.fillWidth: true
                             }

@@ -51,13 +51,16 @@ RowLayout {
 
                 // Stack of parent menu handles for back navigation
                 property var menuStack: []
+                property var backingWin: null
+
+                Component.onCompleted: backingWin = _backingWindow
 
                 onVisibleChanged: {
                     if (!visible) menuStack = []
                 }
 
                 Connections {
-                    target: popup._backingWindow
+                    target: popup.backingWin
                     enabled: popup.visible
                     function onActiveChanged() { if (!target.active) popup.visible = false }
                 }
