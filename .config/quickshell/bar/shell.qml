@@ -5,6 +5,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "modules"
+import "modules/notifications"
+import "modules/launcher"
 
 ShellRoot {
     FontLoader {
@@ -24,6 +26,13 @@ ShellRoot {
         }
     }
 
+    IpcHandler {
+        target: "launcher"
+        function open(mode: string) {
+            LauncherState.open(mode, Quickshell.screens[0])
+        }
+    }
+
     Variants {
         model: Quickshell.screens
         Bar {}
@@ -37,5 +46,10 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         NotificationToast {}
+    }
+
+    Variants {
+        model: Quickshell.screens
+        PickerOverlay {}
     }
 }

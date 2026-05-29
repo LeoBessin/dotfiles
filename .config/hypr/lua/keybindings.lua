@@ -69,14 +69,14 @@ hl.bind(M .. " + B",          hl.dsp.exec_cmd(browser),                         
 hl.bind("CTRL + SHIFT + ESCAPE", hl.dsp.exec_cmd("kitty btop"),                          { description = "system monitor" })
 hl.bind("XF86Assistant",      hl.dsp.exec_cmd("kitty --class ai-picker -e ai-cli-picker"), { description = "AI CLI launcher" })
 
--- Rofi menus
-hl.bind("ALT + SPACE",    hl.dsp.exec_cmd("pkill -x rofi || rofi -show drun -p 'Open'"),              { description = "application finder" })
-hl.bind(M .. " + TAB",   hl.dsp.exec_cmd("pkill -x rofi || rofi -show window"),             { description = "window switcher" })
-hl.bind(MS .. " + E",    hl.dsp.exec_cmd("pkill -x rofi || rofi -show filebrowser"),        { description = "file finder" })
-hl.bind(M .. " + COMMA", hl.dsp.exec_cmd("pkill -x rofi || rofimoji --files emojis --selector-args '-theme /home/nexus/.config/rofi/list.rasi'"),         { description = "emoji picker" })
-hl.bind(M .. " + PERIOD", hl.dsp.exec_cmd("pkill -x rofi || rofimoji --files nerd_font --selector-args '-theme /home/nexus/.config/rofi/list.rasi'"),    { description = "icon picker" })
-hl.bind(M .. " + V",     hl.dsp.exec_cmd("pkill -x rofi || cliphist list | rofi -dmenu -p 'Copy' -theme ~/.config/rofi/list.rasi -theme-str 'entry { placeholder: \"Search history...\"; }' | cliphist decode | wl-copy"), { description = "clipboard picker" })
-hl.bind(MS .. " + V",    hl.dsp.exec_cmd("pkill -x rofi || cliphist list | rofi -dmenu -p 'Copy' -theme ~/.config/rofi/list.rasi -theme-str 'entry { placeholder: \"Search history...\"; }' | cliphist decode | wl-copy"), { description = "clipboard manager" })
+-- QuickShell pickers
+hl.bind("ALT + SPACE",    hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open app"),    { description = "application finder" })
+hl.bind(M .. " + TAB",   hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open window"), { description = "window switcher" })
+hl.bind(MS .. " + E",    hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open files"),  { description = "file finder" })
+hl.bind(M .. " + COMMA", hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open emoji"),  { description = "emoji picker" })
+hl.bind(M .. " + PERIOD",hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open icon"),   { description = "icon picker" })
+hl.bind(M .. " + V",     hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open clip"),   { description = "clipboard picker" })
+hl.bind(MS .. " + V",    hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open clip"),   { description = "clipboard manager" })
 
 -- ──────────────────────────────────────────────────────
 -- Hardware controls

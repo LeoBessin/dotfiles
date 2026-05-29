@@ -121,6 +121,7 @@ local blur_namespaces = {
     "logout_dialog",
     "quickshell-notif-center",
     "quickshell-bar",
+    "quickshell-launcher",
 }
 
 for _, ns in ipairs(blur_namespaces) do

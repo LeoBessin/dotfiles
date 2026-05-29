@@ -9,9 +9,4 @@ singleton NetworkService 1.0 NetworkService.qml
 BarWidget 1.0 BarWidget.qml
 CalendarView 1.0 CalendarView.qml
 PowerButton 1.0 PowerButton.qml
-NotificationCenter 1.0 NotificationCenter.qml
-NotificationItem 1.0 NotificationItem.qml
-NotificationToast 1.0 NotificationToast.qml
-ToastCard 1.0 ToastCard.qml
 MediaPlayerWidget 1.0 MediaPlayerWidget.qml
-NotifAppGroup 1.0 NotifAppGroup.qml
