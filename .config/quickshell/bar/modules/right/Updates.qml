@@ -49,6 +49,7 @@ BarWidget {
         command: ["kitty", "sh", "-c",
             "fastfetch; yay && flatpak update; echo; echo '--- Done. Press Enter to close ---'; read"
         ]
+        onExited: UpdateService.runCheck()
     }
 
     // ── Content ───────────────────────────────────────────────────────────

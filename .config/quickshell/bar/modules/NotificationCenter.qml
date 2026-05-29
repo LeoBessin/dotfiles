@@ -666,6 +666,61 @@ PanelWindow {
                                 brightSetSettings.running          = true
                             }
                         }
+
+                        // Keyboard brightness label row
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Text {
+                                text: ""
+                                font.family:    Theme.iconFamily
+                                font.pixelSize: Theme.iconSize
+                                color: Theme.fg
+                            }
+
+                            Text {
+                                text: "Keyboard"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Theme.fg
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: KeyboardBrightnessService.current === 0 ? "off" : KeyboardBrightnessService.current + " / " + KeyboardBrightnessService.maximum
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Theme.fgDim
+                            }
+                        }
+
+                        // Keyboard brightness level pills
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            CaffeinePill {
+                                label: "Off"
+                                isActive: KeyboardBrightnessService.current === 0
+                                onActivated: KeyboardBrightnessService.setLevel(0)
+                            }
+                            CaffeinePill {
+                                label: "1"
+                                isActive: KeyboardBrightnessService.current === 1
+                                onActivated: KeyboardBrightnessService.setLevel(1)
+                            }
+                            CaffeinePill {
+                                label: "2"
+                                isActive: KeyboardBrightnessService.current === 2
+                                onActivated: KeyboardBrightnessService.setLevel(2)
+                            }
+                            CaffeinePill {
+                                label: "Max"
+                                isActive: KeyboardBrightnessService.current === 3
+                                onActivated: KeyboardBrightnessService.setLevel(3)
+                            }
+                        }
                     }
 
                     // ── Middle: wallpaper grid ────────────────────────────
