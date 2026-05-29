@@ -11,9 +11,6 @@ hl.on("hyprland.start", function()
     -- Idle / lock manager
     hl.exec_cmd("hypridle")
 
-    -- Notification daemon
-    hl.exec_cmd("swaync")
-
     -- Network manager tray applet
     hl.exec_cmd("nm-applet --indicator")
 
