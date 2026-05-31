@@ -57,6 +57,7 @@ PanelWindow {
             _searchText = ""
             _rebuildFilter()
         }
+        function onAppLoadedChanged()    { if (LauncherState.mode === "app")    _rebuildFilter() }
         function onWindowLoadedChanged() { if (LauncherState.mode === "window") _rebuildFilter() }
         function onFileLoadedChanged()   { if (LauncherState.mode === "files")  _rebuildFilter() }
         function onEmojiLoadedChanged()  { if (LauncherState.mode === "emoji")  _rebuildFilter() }
@@ -665,7 +666,7 @@ PanelWindow {
 
         if (m === "app") {
             if (!item.exec || item.exec.trim() === "") return
-            appRunner.command = ["bash", "-c", item.exec + " &"]
+            appRunner.command = ["bash", "-c", "setsid --fork " + item.exec + " &>/dev/null"]
             appRunner.running = false
             appRunner.running = true
             LauncherState.close()

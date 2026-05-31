@@ -35,6 +35,7 @@ Item {
     function open(m, screen) {
         targetScreen = screen ?? Quickshell.screens[0]
         mode = m
+        if (m === "app")    _loadApps()
         if (m === "window") _loadWindows()
         if (m === "files")  _loadFiles(currentDir !== "" ? currentDir : _homeDir())
         if (m === "clip")   _loadClip()
@@ -58,13 +59,16 @@ Item {
     Process {
         id: appLoader
         command: ["bash", "-c",
-            "find /usr/share/applications ~/.local/share/applications -name '*.desktop' 2>/dev/null | " +
+            "{ IFS=: read -ra dirs <<< \"${XDG_DATA_DIRS:-/usr/local/share:/usr/share}\"; " +
+            "for d in \"${XDG_DATA_HOME:-$HOME/.local/share}\" \"${dirs[@]}\"; do echo \"$d/applications\"; done; } | " +
+            "xargs -I{} find {} -name '*.desktop' 2>/dev/null | " +
+            "sort -u | " +
             "xargs grep -l '^Type=Application' 2>/dev/null | " +
             "while IFS= read -r f; do " +
             "  nodisplay=$(grep -m1 '^NoDisplay=' \"$f\" | cut -d= -f2-); " +
             "  [ \"$nodisplay\" = 'true' ] && continue; " +
             "  name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-); " +
-            "  exec_cmd=$(grep -m1 '^Exec=' \"$f\" | cut -d= -f2- | sed 's/ %[A-Za-z]//g'); " +
+            "  exec_cmd=$(grep -m1 '^Exec=' \"$f\" | cut -d= -f2- | sed 's/ --file-forwarding//g;s/ @@[^ ]*//g;s/ %[A-Za-z]//g'); " +
             "  icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2- | sed 's/\\.[Pp][Nn][Gg]$//;s/\\.[Ss][Vv][Gg]$//;s/\\.[Xx][Pp][Mm]$//'); " +
             "  [ -z \"$name\" ] && continue; " +
             "  printf '%s\\t%s\\t%s\\n' \"$name\" \"$icon\" \"$exec_cmd\"; " +
@@ -180,6 +184,13 @@ Item {
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────
+    function _loadApps() {
+        appLoaded = false
+        appModel.clear()
+        appLoader.running = false
+        appLoader.running = true
+    }
+
     function _loadWindows() {
         windowLoaded = false
         windowModel.clear()
@@ -226,5 +237,4 @@ Item {
         iconLoader.running = true
     }
 
-    Component.onCompleted: appLoader.running = true
 }
