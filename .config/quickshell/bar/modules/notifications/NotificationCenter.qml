@@ -957,6 +957,7 @@ PanelWindow {
                 id: aiUsageWidget
                 property int aiTab: 0   // 0=Claude, 1=Copilot
 
+                visible: panelContent.activeTab === 0
                 Layout.fillWidth: true
                 implicitHeight:   aiUsageInner.implicitHeight + 16
                 radius: Theme.pillRadius
