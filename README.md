@@ -58,222 +58,204 @@ A minimal, curated set of configuration files for an Arch Linux desktop built ar
 <details>
 <summary><strong>Left — System Stats</strong></summary>
 
-CPU usage percentage and RAM used (in GB), read directly from `/proc/stat` and `/proc/meminfo` every 2 seconds. Values are color-coded: yellow above 50 % CPU / 65 % RAM, red above 80 % CPU / 85 % RAM. Click opens `btop` in a Kitty terminal.
+CPU % and RAM usage, polled every 2 s. Color-coded yellow/red at high load. Click opens `btop`.
 
 </details>
 
 <details>
 <summary><strong>Left — Idle Clock</strong></summary>
 
-Two sub-elements side by side:
-
-- **Caffeine toggle** — coffee icon when idle is allowed, sleep icon when inhibit is active. If a timed session is running the remaining time is shown next to the icon. Click toggles indefinite sleep inhibition; duration options are managed from the notification center settings tab.
-- **Clock** — displays current time as `h:mm am/pm` and date as `ddd dd MMM`, updated every minute via QuickShell's `SystemClock`.
+Caffeine toggle (click to inhibit sleep indefinitely, shows countdown when timed) + clock with time and date.
 
 </details>
 
 <details>
 <summary><strong>Center — Workspaces</strong></summary>
 
-Per-monitor workspace pills sourced from Hyprland's IPC. The active workspace pill is wider (28 px, accent-colored with a dark number); inactive ones are smaller (20 px, subtle white tint). Width animates on switch. Click a pill to jump to that workspace.
+Per-monitor workspace pills. Active pill is wider and accent-colored. Click to switch workspace.
 
 </details>
 
 <details>
 <summary><strong>Center — Active Window</strong></summary>
 
-Title of the focused window on this monitor, truncated at 48 characters with an ellipsis. Hidden when no window is active. Reads the activated toplevel from the current workspace; falls back to the last known title during brief focus gaps.
+Focused window title on this monitor, truncated at 48 characters. Hidden when no window is active.
 
 </details>
 
 <details>
 <summary><strong>Right — Updates</strong></summary>
 
-Combined pending update count across pacman, AUR (`yay`), and Flatpak. Badge colors: green = up to date, accent = updates available, yellow = currently checking. Hover shows a tooltip with the per-source breakdown. Left-click opens a Kitty terminal running `fastfetch; yay && flatpak update`. Right-click triggers a fresh check without upgrading.
+Pending update count (pacman + AUR + Flatpak). Hover for per-source breakdown. Click to upgrade, right-click to re-check.
 
 </details>
 
 <details>
 <summary><strong>Right — Brightness</strong></summary>
 
-Screen backlight level percentage via `brightnessctl`. Icon changes across three tiers (low / medium / high). Scroll up/down to adjust ±5 %; click toggles between 30 % and 100 %. A finer slider is also available in the notification center settings tab.
+Screen backlight %. Scroll to adjust ±5 %, click to toggle 30 %/100 %.
 
 </details>
 
 <details>
 <summary><strong>Right — Network</strong></summary>
 
-Wi-Fi SSID with a four-tier signal-strength icon (≥75 % / ≥50 % / ≥25 % / below). Below the SSID, live transmit and receive speeds are shown in B/K/M per second, sourced from NetworkManager via `NetworkService`. Non-interactive.
+Wi-Fi SSID, signal-strength icon, and live tx/rx speed. Non-interactive.
 
 </details>
 
 <details>
 <summary><strong>Right — Volume</strong></summary>
 
-Default audio sink volume and mute state via `wpctl` / `pactl`. Icon adapts to level (muted / low / medium / high). Scroll to adjust volume, left-click to toggle mute, right-click to open pavucontrol on the playback tab. Reacts in real time to `pactl subscribe` events.
+Default sink volume and mute state. Scroll to adjust, click to toggle mute, right-click to open pavucontrol.
 
 </details>
 
 <details>
 <summary><strong>Right — Microphone</strong></summary>
 
-Default PipeWire source mute state. Mic icon turns red when muted; a small colored dot (green = live, red = muted) provides a quick-glance indicator. Left-click toggles mute, right-click opens pavucontrol on the recording tab.
+Default source mute indicator. Click to toggle mute, right-click to open pavucontrol.
 
 </details>
 
 <details>
 <summary><strong>Right — Tray</strong></summary>
 
-System tray via `Quickshell.Services.SystemTray`. Each item renders its icon. Left-click activates the item; right-click opens a custom themed popup menu. Submenus are supported — drilling into one shows a Back button to navigate up.
+System tray icons. Left-click activates, right-click opens a themed popup menu with submenu support.
 
 </details>
 
 <details>
 <summary><strong>Right — Battery</strong></summary>
 
-Battery level and state from UPower. Icon set covers seven discharge levels plus charging variants. Color: green when charging or full, yellow at ≤ 30 %, red at ≤ 15 %. Non-interactive.
+Battery level and charging state from UPower. Color-coded green/yellow/red. Non-interactive.
 
 </details>
 
 <details>
 <summary><strong>Right — Notifications button</strong></summary>
 
-Bell icon with an unread-count badge. Shows a strikethrough bell when Do Not Disturb is enabled. Badge disappears once all notifications are read. Click toggles the notification center panel.
+Bell icon with unread badge. Strikethrough when DND is on. Click toggles the notification center.
 
 </details>
 
 ### Notification center (`Super + N`)
 
-A slide-in panel from the right edge, 380 px wide, with two tabs accessed from the bottom tab bar.
+Slide-in panel from the right, two tabs (Notifications / Settings).
 
 <details>
 <summary><strong>Notifications tab — Media player</strong></summary>
 
-MPRIS media player widget shown at the top of the panel whenever a player is active. Features:
-
-- Album art thumbnail (52 × 52) and blurred art as the card background
-- Track title, artist, and album
-- Playback progress bar (1 s resolution)
-- Controls: shuffle toggle, previous, play/pause, next, repeat (cycles None → Playlist → Track)
-
-Prefers the currently playing player; falls back to the first available one.
+MPRIS widget with album art, track info, progress bar, and playback controls (shuffle, previous, play/pause, next, repeat).
 
 </details>
 
 <details>
 <summary><strong>Notifications tab — Do Not Disturb</strong></summary>
 
-A bedtime icon, "Do not disturb" label, and a toggle switch. When enabled, incoming notifications are silenced (no toasts) and the bar bell icon switches to a strikethrough variant.
+Toggle switch that silences toasts and changes the bar bell icon to a strikethrough variant.
 
 </details>
 
 <details>
 <summary><strong>Notifications tab — Notification list</strong></summary>
 
-Scrollable list of notifications grouped by application (`NotifAppGroup`). Each group can be collapsed/expanded; a per-group clear button removes all notifications from that app. A "Clear all" button appears in the header when the history is non-empty. Notifications are marked as read 800 ms after the panel opens. Shows "No notifications" when the list is empty.
+Notifications grouped by app, each group collapsible with a per-app clear button. "Clear all" in the header. Auto-marked as read on open.
 
 </details>
 
 <details>
 <summary><strong>Notifications tab — AI usage widget</strong></summary>
 
-A pinned card with a tab selector for two providers:
-
-- **Claude Code** — Fetches usage from the Anthropic API (`/api/oauth/usage`) using the OAuth token from `~/.claude/.credentials.json`. Displays three progress bars: 5-hour utilization, 7-day utilization, and credits. Reset times are shown below the bars.
-- **GitHub Copilot** — Fetches premium interaction quota from `api.github.com/copilot_internal/user` using the token from `~/.config/github-copilot/apps.json`. Displays a single bar (remaining / total) and the monthly reset date.
-
-Both providers are fetched on panel open with a 60-second cache, and auto-refresh every 5 minutes while the panel stays open.
+Usage bars for Claude Code (5h / 7d / credits) and GitHub Copilot (premium interactions). Refreshes on open and every 5 minutes while the panel is visible.
 
 </details>
 
 <details>
 <summary><strong>Notifications tab — Calendar</strong></summary>
 
-A compact month calendar view pinned at the bottom of the notifications tab.
+Month calendar view pinned at the bottom of the tab.
 
 </details>
 
 <details>
 <summary><strong>Settings tab — Volume & Brightness</strong></summary>
 
-Two sliders:
-
-- **Volume** — controls the default audio sink via `wpctl set-volume`. Shows current level or "mute"; icon adapts to level. Kept in sync with `pactl subscribe` events.
-- **Brightness** — controls screen backlight via `brightnessctl set`. Minimum value is 5 % to prevent a fully black screen.
+Sliders for speaker volume (`wpctl`) and screen brightness (`brightnessctl`).
 
 </details>
 
 <details>
 <summary><strong>Settings tab — Keyboard brightness</strong></summary>
 
-Four pill buttons — Off / 1 / 2 / Max — that set the keyboard backlight level via `KeyboardBrightnessService`.
+Pill buttons to set keyboard backlight level: Off / 1 / 2 / Max.
 
 </details>
 
 <details>
 <summary><strong>Settings tab — Wallpaper picker</strong></summary>
 
-A 3-column thumbnail grid (16:9 aspect ratio) browsing `~/.local/share/wallpapers/`. Subdirectories are shown as folder cards and can be drilled into; a back arrow navigates up. The currently active wallpaper is highlighted with an accent border. Clicking a thumbnail calls `set-wallpaper` to apply it immediately.
+3-column thumbnail grid of `~/.local/share/wallpapers/` with folder navigation. Click a thumbnail to apply via `set-wallpaper`.
 
 </details>
 
 <details>
 <summary><strong>Settings tab — Caffeine</strong></summary>
 
-Sleep prevention controls backed by `CaffeineState` (uses `systemd-inhibit`). Status text at the top describes the current state. Duration pills: Off / ∞ (indefinite) / 30 min / 1 hour / 2 hours. The active pill shows the remaining time instead of its label.
+Sleep prevention with duration options: Off / ∞ / 30 min / 1 h / 2 h. Active pill shows remaining time.
 
 </details>
 
 <details>
 <summary><strong>Settings tab — Power buttons</strong></summary>
 
-Four buttons in a row: **Lock** (`hyprlock`), **Log out** (`loginctl terminate-user`), **Reboot** (`systemctl reboot`, requires confirmation), **Shut down** (`systemctl poweroff`, requires confirmation). Reboot and Shut down are colored yellow and red respectively to signal destructiveness.
+Lock, Log out, Reboot, Shut down. Reboot and Shut down require confirmation.
 
 </details>
 
 ### Launcher / pickers
 
-A centered floating card with a proportional wallpaper header. Closed with `Escape` or a click outside.
+Centered floating card with a wallpaper header. `Escape` or click outside to close.
 
 <details>
 <summary><strong>App launcher (<code>Alt + Space</code>)</strong></summary>
 
-4-column icon grid of installed applications. Type to filter by name; arrow keys and Enter to navigate and launch. Apps are launched detached via `setsid --fork`.
+Searchable 4-column icon grid. Enter or click to launch.
 
 </details>
 
 <details>
 <summary><strong>File finder (<code>Super + Shift + E</code>)</strong></summary>
 
-Directory browser starting at `$HOME`. The path breadcrumb is shown in the search bar; a back arrow navigates up. Directories open in-place; files are opened with `xdg-open`.
+Directory browser with path breadcrumb. Directories navigate in-place; files open with `xdg-open`.
 
 </details>
 
 <details>
 <summary><strong>Emoji picker (<code>Super + ,</code>)</strong></summary>
 
-Searchable list of emoji characters. Selecting one copies it to the clipboard via `wl-copy`.
+Searchable emoji list. Selecting one copies it to the clipboard.
 
 </details>
 
 <details>
 <summary><strong>Icon picker (<code>Super + .</code>)</strong></summary>
 
-Searchable list of Nerd Font glyphs rendered in the configured nerd font. Selecting one copies the character via `wl-copy`.
+Searchable Nerd Font glyph list. Selecting one copies the character to the clipboard.
 
 </details>
 
 <details>
 <summary><strong>Clipboard manager (<code>Super + V</code>)</strong></summary>
 
-History from `cliphist`. Text entries show a preview; image entries show a 44 × 44 thumbnail. Left/right arrow keys paginate through long histories. Selecting an entry restores it to the clipboard via `cliphist decode | wl-copy`.
+`cliphist` history with text previews and image thumbnails. Selecting an entry restores it to the clipboard.
 
 </details>
 
 <details>
 <summary><strong>Window switcher</strong></summary>
 
-Lists all open windows across workspaces. Each entry shows the window title and a window-class chip. Selecting one focuses the window via a Hyprland dispatch.
+Lists open windows with their class. Selecting one focuses it via Hyprland.
 
 </details>
 
