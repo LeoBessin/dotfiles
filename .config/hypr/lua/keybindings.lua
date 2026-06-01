@@ -71,7 +71,7 @@ hl.bind("XF86Assistant",      hl.dsp.exec_cmd("kitty --class ai-picker -e ai-cli
 
 -- QuickShell pickers
 hl.bind("ALT + SPACE",    hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open app"),    { description = "application finder" })
-hl.bind(M .. " + TAB",   hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open window"), { description = "window switcher" })
+hl.bind(M .. " + TAB",   hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call workspaces open"),      { description = "workspace switcher" })
 hl.bind(MS .. " + E",    hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open files"),  { description = "file finder" })
 hl.bind(M .. " + COMMA", hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open emoji"),  { description = "emoji picker" })
 hl.bind(M .. " + PERIOD",hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open icon"),   { description = "icon picker" })

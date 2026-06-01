@@ -8,6 +8,7 @@ import Quickshell.Hyprland
 import "modules"
 import "modules/notifications"
 import "modules/launcher"
+import "modules/workspaces"
 
 ShellRoot {
     FontLoader {
@@ -41,6 +42,20 @@ ShellRoot {
         }
     }
 
+    IpcHandler {
+        target: "workspaces"
+        function open() {
+            var focusedName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
+            for (var i = 0; i < Quickshell.screens.length; i++) {
+                if (Quickshell.screens[i].name === focusedName) {
+                    WorkspaceSwitcherState.open(Quickshell.screens[i])
+                    return
+                }
+            }
+            WorkspaceSwitcherState.open(Quickshell.screens[0])
+        }
+    }
+
     Variants {
         model: Quickshell.screens
         Bar {}
@@ -59,5 +74,10 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         PickerOverlay {}
+    }
+
+    Variants {
+        model: Quickshell.screens
+        WorkspaceSwitcher {}
     }
 }
