@@ -12,9 +12,22 @@
 
 ---
 
-<!-- Preview image — replace the src with your actual screenshot -->
 <div align="center">
-  <img src="assets/preview.png" alt="Desktop preview" width="100%"/>
+  <img src="assets/preview_bar.png" alt="Bar" width="100%"/>
+</div>
+
+<div align="center">
+  <img src="assets/preview_workspace_switch.png" alt="Workspace switcher" width="49%"/>
+  <img src="assets/preview_app-launcher.png" alt="App launcher" width="49%"/>
+</div>
+
+<div align="center">
+  <img src="assets/preview_notification-center-tab-1.png" alt="Notification center — notifications" width="49%"/>
+  <img src="assets/preview_notification-center-tab-2.png" alt="Notification center — settings" width="49%"/>
+</div>
+
+<div align="center">
+  <img src="assets/preview_clip-history.png" alt="Clipboard manager" width="49%"/>
 </div>
 
 <!-- Video showcase — replace the URL with your actual video link -->
