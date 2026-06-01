@@ -98,7 +98,7 @@ PanelWindow {
 
         MouseArea { anchors.fill: parent }
 
-        // Active tab index: 0=Notifications, 1=Caffeine, 2=Calendar, 3=Settings
+        // Active tab index: 0=Notifications, 1=Settings
         property int activeTab: 0
 
         property real settingsVolume:        0
@@ -136,7 +136,7 @@ PanelWindow {
         }
 
         onActiveTabChanged: {
-            if (activeTab === 3) {
+            if (activeTab === 1) {
                 refreshVolume()
                 brightGetCurrent.running = true
             }
@@ -232,7 +232,7 @@ PanelWindow {
                 }
             }
             onExited: {
-                if (panelContent.activeTab === 3 && panelContent.wallpaperModel.count === 0)
+                if (panelContent.activeTab === 1 && panelContent.wallpaperModel.count === 0)
                     panelContent.loadWallpaperDir(panelContent.wallpaperRootDir)
             }
         }
@@ -322,10 +322,7 @@ PanelWindow {
                 spacing: 6
 
                 Text {
-                    text: panelContent.activeTab === 0 ? "Notifications"
-                        : panelContent.activeTab === 1 ? "Caffeine"
-                        : panelContent.activeTab === 2 ? "Calendar"
-                        : "Settings"
+                    text: panelContent.activeTab === 0 ? "Notifications" : "Settings"
                     font.family:    Theme.fontFamily
                     font.pixelSize: Theme.fontSize + 1
                     font.weight:    Font.DemiBold
@@ -374,189 +371,375 @@ PanelWindow {
                 color:  Theme.notifBorderDim
             }
 
-            // ── DND row ───────────────────────────────────────────────────
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                Text {
-                    text:  ""   // Material Symbols: bedtime
-                    font.family:    Theme.iconFamily
-                    font.pixelSize: Theme.iconSize - 1
-                    color: NotifService.dnd ? Theme.accent : Theme.fgDim
-                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                }
-
-                Text {
-                    text:  "Do not disturb"
-                    font.family:    Theme.fontFamily
-                    font.pixelSize: Theme.fontSize
-                    color: Theme.fg
-                    Layout.fillWidth: true
-                }
-
-                // Toggle switch
-                Rectangle {
-                    id: dndSwitch
-                    width:  44
-                    height: 24
-                    radius: 12
-                    color:  NotifService.dnd ? Theme.accent : Qt.rgba(0.30, 0.28, 0.45, 0.70)
-                    Behavior on color { ColorAnimation { duration: 150 } }
-
-                    Rectangle {
-                        width:  20
-                        height: 20
-                        radius: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        x: NotifService.dnd ? parent.width - width - 2 : 2
-                        color: "white"
-                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape:  Qt.PointingHandCursor
-                        onClicked:    NotifService.dnd = !NotifService.dnd
-                    }
-                }
-            }
-
-            // Divider
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color:  Theme.notifBorderMid
-            }
-
             // ── Tab content area ──────────────────────────────────────────
             Item {
                 Layout.fillWidth:  true
                 Layout.fillHeight: true
 
-                // Tab 0: Notifications
+                // Tab 0: Notifications (fills top) + Calendar + Caffeine (pinned bottom)
                 Item {
                     anchors.fill: parent
                     visible: panelContent.activeTab === 0
 
-                    Text {
-                        visible: NotifService.historyModel.count === 0
-                        anchors.centerIn: parent
-                        text:    "No notifications"
-                        font.family:    Theme.fontFamily
-                        font.pixelSize: Theme.fontSize
-                        color:  Theme.fgDim
-                    }
-
-                    ScrollView {
+                    ColumnLayout {
                         anchors.fill: parent
-                        visible: NotifService.historyModel.count > 0
-                        clip: true
-                        contentWidth: availableWidth
-                        ScrollBar.vertical.policy:   ScrollBar.AsNeeded
-                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                        spacing: 0
 
-                        Column {
-                            width:   parent.width
+
+                        // ── DND row ─────────────────────────────────────
+                        RowLayout {
+                            Layout.fillWidth: true
                             spacing: 8
 
-                            Repeater {
-                                model: NotifService.appGroupsModel
+                            Text {
+                                text:  ""   // Material Symbols: bedtime
+                                font.family:    Theme.iconFamily
+                                font.pixelSize: Theme.iconSize - 1
+                                color: NotifService.dnd ? Theme.accent : Theme.fgDim
+                                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                            }
 
-                                delegate: NotifAppGroup {
-                                    required property var model
+                            Text {
+                                text:  "Do not disturb"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: Theme.fg
+                                Layout.fillWidth: true
+                            }
 
-                                    width:       parent.width
-                                    appName:     model.appName
-                                    appIcon:     model.appIcon
-                                    count:       model.count
-                                    unreadCount: model.unreadCount
-                                    collapsed:   model.collapsed
+                            // Toggle switch
+                            Rectangle {
+                                id: dndSwitch
+                                width:  44
+                                height: 24
+                                radius: 12
+                                color:  NotifService.dnd ? Theme.accent : Qt.rgba(0.30, 0.28, 0.45, 0.70)
+                                Behavior on color { ColorAnimation { duration: 150 } }
 
-                                    onToggleCollapse: NotifService.toggleAppCollapsed(model.appName)
-                                    onClearRequested: NotifService.clearApp(model.appName)
+                                Rectangle {
+                                    width:  20
+                                    height: 20
+                                    radius: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    x: NotifService.dnd ? parent.width - width - 2 : 2
+                                    color: "white"
+                                    Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape:  Qt.PointingHandCursor
+                                    onClicked:    NotifService.dnd = !NotifService.dnd
                                 }
                             }
                         }
+                        // ── Notification list (fills remaining space) ─────
+                        Item {
+                            Layout.fillWidth:  true
+                            Layout.fillHeight: true
+
+                            Text {
+                                visible: NotifService.historyModel.count === 0
+                                anchors.centerIn: parent
+                                text:    "No notifications"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color:  Theme.fgDim
+                            }
+
+                            ScrollView {
+                                anchors.fill: parent
+                                visible: NotifService.historyModel.count > 0
+                                clip: true
+                                contentWidth: availableWidth
+                                ScrollBar.vertical.policy:   ScrollBar.AsNeeded
+                                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+                                Column {
+                                    width:   parent.width
+                                    spacing: 8
+                                    topPadding: 8
+
+                                    Repeater {
+                                        model: NotifService.appGroupsModel
+
+                                        delegate: NotifAppGroup {
+                                            required property var model
+
+                                            width:       parent.width
+                                            appName:     model.appName
+                                            appIcon:     model.appIcon
+                                            count:       model.count
+                                            unreadCount: model.unreadCount
+                                            collapsed:   model.collapsed
+
+                                            onToggleCollapse: NotifService.toggleAppCollapsed(model.appName)
+                                            onClearRequested: NotifService.clearApp(model.appName)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Divider
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color:  Theme.notifBorderDim
+                        }
+
+                        Rectangle {
+                            id: aiUsageWidget
+                            property int aiTab: 0   // 0=Claude, 1=Copilot
+
+                            Layout.fillWidth: true
+                            implicitHeight:   aiUsageInner.implicitHeight + 16
+                            radius: Theme.pillRadius
+                            color:  "#262625"
+                            border.color: aiTab === 0 ? Theme.claude : Theme.copilot
+                            border.width: 1
+                            Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
+
+                            ColumnLayout {
+                                id: aiUsageInner
+                                anchors.left:        parent.left
+                                anchors.right:       parent.right
+                                anchors.top:         parent.top
+                                anchors.leftMargin:  12
+                                anchors.rightMargin: 12
+                                anchors.topMargin:   8
+                                spacing: 6
+
+                                // ── Provider tab selector ─────────────────────────────
+                                RowLayout {
+                                    spacing: 4
+
+                                    Rectangle {
+                                        property bool _active: aiUsageWidget.aiTab === 0
+                                        implicitHeight: 26
+                                        implicitWidth:  tabClaudeRow.implicitWidth + 16
+                                        radius: 13
+                                        color: _active ? Qt.rgba(0.80, 0.47, 0.36, 0.18) : "transparent"
+                                        Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                                        RowLayout {
+                                            id: tabClaudeRow
+                                            anchors.centerIn: parent
+                                            spacing: 5
+
+                                            Image {
+                                                source: "../../assets/claudecode-color.svg"
+                                                width: 14; height: 14
+                                                sourceSize: Qt.size(14, 14)
+                                            }
+                                            Text {
+                                                text: "Claude"
+                                                font.family:    Theme.fontFamily
+                                                font.pixelSize: Theme.fontSize - 2
+                                                font.weight:    Font.Medium
+                                                color: aiUsageWidget.aiTab === 0 ? "white" : Theme.fgDim
+                                                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: aiUsageWidget.aiTab = 0
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        property bool _active: aiUsageWidget.aiTab === 1
+                                        implicitHeight: 26
+                                        implicitWidth:  tabCopilotRow.implicitWidth + 16
+                                        radius: 13
+                                        color: _active ? Qt.rgba(0.949, 0.961, 0.953, 0.18) : "transparent"
+                                        Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                                        RowLayout {
+                                            id: tabCopilotRow
+                                            anchors.centerIn: parent
+                                            spacing: 5
+
+                                            Image {
+                                                source: "../../assets/githubcopilot-color.svg"
+                                                width: 14; height: 14
+                                                sourceSize: Qt.size(14, 14)
+                                            }
+                                            Text {
+                                                text: "Copilot"
+                                                font.family:    Theme.fontFamily
+                                                font.pixelSize: Theme.fontSize - 2
+                                                font.weight:    Font.Medium
+                                                color: aiUsageWidget.aiTab === 1 ? Theme.copilot : Theme.fgDim
+                                                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: aiUsageWidget.aiTab = 1
+                                        }
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+                                }
+
+                                // ── Claude content ────────────────────────────────────
+                                ColumnLayout {
+                                    visible: aiUsageWidget.aiTab === 0
+                                    Layout.fillWidth: true
+                                    spacing: 6
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+
+                                        Image {
+                                            source: "../../assets/claudecode-color.svg"
+                                            width:  22
+                                            height: 22
+                                            sourceSize: Qt.size(22, 22)
+                                        }
+                                        Text {
+                                            text: "Claude Code"
+                                            font.family:    Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize - 1
+                                            font.weight:    Font.DemiBold
+                                            color: "white"
+                                            Layout.fillWidth: true
+                                        }
+                                        Text {
+                                            visible: panelContent.claudeLoading
+                                            text: ""
+                                            font.family:    Theme.iconFamily
+                                            font.pixelSize: Theme.fontSize
+                                            color: Qt.rgba(1, 1, 1, 0.60)
+                                            RotationAnimator on rotation {
+                                                running: panelContent.claudeLoading
+                                                from: 0; to: 360; duration: 1000
+                                                loops: Animation.Infinite
+                                            }
+                                        }
+                                    }
+
+                                    ClaudeBar { label: "5h";      value: panelContent.claudeFiveHour }
+                                    ClaudeBar { label: "7d";      value: panelContent.claudeSevenDay }
+                                    ClaudeBar { label: "credits"; value: panelContent.claudeCredits }
+
+                                    Text {
+                                        visible: panelContent.claudeFiveHourResetsAt !== "" || panelContent.claudeSevenDayResetsAt !== ""
+                                        text: {
+                                            function fmtTime(iso) {
+                                                if (!iso) return ""
+                                                var d = new Date(iso)
+                                                return d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
+                                            }
+                                            function fmtDayTime(iso) {
+                                                if (!iso) return ""
+                                                var d = new Date(iso)
+                                                return d.toLocaleDateString([], {weekday: "short"}) + " " + d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
+                                            }
+                                            var parts = []
+                                            if (panelContent.claudeFiveHourResetsAt !== "") parts.push("5h resets " + fmtTime(panelContent.claudeFiveHourResetsAt))
+                                            if (panelContent.claudeSevenDayResetsAt  !== "") parts.push("7d resets " + fmtDayTime(panelContent.claudeSevenDayResetsAt))
+                                            return parts.join(" · ")
+                                        }
+                                        font.family:    Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 2
+                                        color: Theme.fgDim
+                                        Layout.fillWidth: true
+                                    }
+                                }
+
+                                // ── Copilot content ───────────────────────────────────
+                                ColumnLayout {
+                                    visible: aiUsageWidget.aiTab === 1
+                                    Layout.fillWidth: true
+                                    spacing: 6
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+
+                                        Image {
+                                            source: "../../assets/githubcopilot-color.svg"
+                                            width:  22
+                                            height: 22
+                                            sourceSize: Qt.size(22, 22)
+                                        }
+                                        Text {
+                                            text: "GitHub Copilot"
+                                            font.family:    Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize - 1
+                                            font.weight:    Font.DemiBold
+                                            color: "white"
+                                            Layout.fillWidth: true
+                                        }
+                                        Text {
+                                            visible: panelContent.copilotLoading
+                                            text: ""
+                                            font.family:    Theme.iconFamily
+                                            font.pixelSize: Theme.fontSize
+                                            color: Qt.rgba(1, 1, 1, 0.60)
+                                            RotationAnimator on rotation {
+                                                running: panelContent.copilotLoading
+                                                from: 0; to: 360; duration: 1000
+                                                loops: Animation.Infinite
+                                            }
+                                        }
+                                    }
+
+                                    ClaudeBar {
+                                        label: "premium"
+                                        value: panelContent.copilotPremiumTotal > 0
+                                               ? (1 - panelContent.copilotPremiumRemaining / panelContent.copilotPremiumTotal) * 100
+                                               : 0
+                                        fillColor: Theme.copilot
+                                    }
+
+                                    Text {
+                                        text: {
+                                            var rem   = Math.round(panelContent.copilotPremiumRemaining)
+                                            var total = Math.round(panelContent.copilotPremiumTotal)
+                                            var extra = ""
+                                            if (panelContent.copilotResetDate !== "") {
+                                                var parts = panelContent.copilotResetDate.split("-")
+                                                var monthNames = ["Jan","Feb","Mar","Apr","May","Jun",
+                                                                  "Jul","Aug","Sep","Oct","Nov","Dec"]
+                                                extra = " · resets " + monthNames[parseInt(parts[1]) - 1] + " " + parseInt(parts[2])
+                                            }
+                                            return rem + " of " + total + " remaining" + extra
+                                        }
+                                        font.family:    Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize - 2
+                                        color: Theme.fgDim
+                                        Layout.fillWidth: true
+                                    }
+                                }
+                            }
+                        }
+
+                        // Divider
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color:  Theme.notifBorderDim
+                        }
+
+                        // ── Calendar widget ───────────────────────────────
+                        CalendarView {
+                            Layout.fillWidth: true
+                        }
                     }
                 }
 
-                // Tab 1: Caffeine
+                // Tab 1: Settings
                 Item {
                     anchors.fill: parent
                     visible: panelContent.activeTab === 1
-
-                    ColumnLayout {
-                        anchors {
-                            top:   parent.top
-                            left:  parent.left
-                            right: parent.right
-                        }
-                        spacing: 16
-
-                        // Status
-                        Text {
-                            Layout.fillWidth: true
-                            horizontalAlignment: Text.AlignHCenter
-                            text: CaffeineState.active
-                                  ? (CaffeineState.durationMinutes < 0
-                                     ? "Preventing sleep indefinitely"
-                                     : "Preventing sleep\n" + CaffeineState.remainingLabel + " remaining")
-                                  : "Screen sleep allowed"
-                            font.family:    Theme.fontFamily
-                            font.pixelSize: Theme.fontSize
-                            color: CaffeineState.active ? Theme.accent : Theme.fgDim
-                            wrapMode: Text.WordWrap
-                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                        }
-
-                        // Mode buttons grid
-                        GridLayout {
-                            Layout.fillWidth: true
-                            columns: 3
-                            rowSpacing:    6
-                            columnSpacing: 6
-
-                            CaffeinePill { label: "Off";  isActive: !CaffeineState.active;                                     onActivated: CaffeineState.deactivate() }
-                            CaffeinePill { label: "∞";    isActive: CaffeineState.active && CaffeineState.durationMinutes < 0; onActivated: CaffeineState.activateIndefinite() }
-                            CaffeinePill {
-                                label:    CaffeineState.active && CaffeineState.durationMinutes === 30 ? CaffeineState.remainingLabel : "30 min"
-                                isActive: CaffeineState.active && CaffeineState.durationMinutes === 30
-                                onActivated: CaffeineState.activateFor(30)
-                            }
-                            CaffeinePill {
-                                label:    CaffeineState.active && CaffeineState.durationMinutes === 60 ? CaffeineState.remainingLabel : "1 hour"
-                                isActive: CaffeineState.active && CaffeineState.durationMinutes === 60
-                                onActivated: CaffeineState.activateFor(60)
-                            }
-                            CaffeinePill {
-                                label:    CaffeineState.active && CaffeineState.durationMinutes === 120 ? CaffeineState.remainingLabel : "2 hours"
-                                isActive: CaffeineState.active && CaffeineState.durationMinutes === 120
-                                onActivated: CaffeineState.activateFor(120)
-                            }
-                        }
-                    }
-                }
-
-                // Tab 2: Calendar
-                Item {
-                    anchors.fill: parent
-                    visible: panelContent.activeTab === 2
-
-                    CalendarView {
-                        anchors {
-                            top:   parent.top
-                            left:  parent.left
-                            right: parent.right
-                        }
-                    }
-                }
-
-                // Tab 3: Settings
-                Item {
-                    anchors.fill: parent
-                    visible: panelContent.activeTab === 3
-
                     onVisibleChanged: {
                         if (visible) {
                             wallpaperCurrentReader.running = false
@@ -907,6 +1090,56 @@ PanelWindow {
                         }
                         spacing: 10
 
+                        // ── Caffeine widget ───────────────────────────────
+ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 12
+
+                            Item { height: 8 }
+
+                            Text {
+                                Layout.fillWidth: true
+                                horizontalAlignment: Text.AlignHCenter
+                                text: CaffeineState.active
+                                      ? (CaffeineState.durationMinutes < 0
+                                         ? "Preventing sleep indefinitely"
+                                         : "Preventing sleep\n" + CaffeineState.remainingLabel + " remaining")
+                                      : "Screen sleep allowed"
+                                font.family:    Theme.fontFamily
+                                font.pixelSize: Theme.fontSize
+                                color: CaffeineState.active ? Theme.accent : Theme.fgDim
+                                wrapMode: Text.WordWrap
+                                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                            }
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 3
+                                rowSpacing:    6
+                                columnSpacing: 6
+
+                                CaffeinePill { label: "Off";  isActive: !CaffeineState.active;                                     onActivated: CaffeineState.deactivate() }
+                                CaffeinePill { label: "∞";    isActive: CaffeineState.active && CaffeineState.durationMinutes < 0; onActivated: CaffeineState.activateIndefinite() }
+                                CaffeinePill {
+                                    label:    CaffeineState.active && CaffeineState.durationMinutes === 30 ? CaffeineState.remainingLabel : "30 min"
+                                    isActive: CaffeineState.active && CaffeineState.durationMinutes === 30
+                                    onActivated: CaffeineState.activateFor(30)
+                                }
+                                CaffeinePill {
+                                    label:    CaffeineState.active && CaffeineState.durationMinutes === 60 ? CaffeineState.remainingLabel : "1 hour"
+                                    isActive: CaffeineState.active && CaffeineState.durationMinutes === 60
+                                    onActivated: CaffeineState.activateFor(60)
+                                }
+                                CaffeinePill {
+                                    label:    CaffeineState.active && CaffeineState.durationMinutes === 120 ? CaffeineState.remainingLabel : "2 hours"
+                                    isActive: CaffeineState.active && CaffeineState.durationMinutes === 120
+                                    onActivated: CaffeineState.activateFor(120)
+                                }
+                            }
+
+                            Item { height: 4 }
+                        }
+
                         Rectangle {
                             Layout.fillWidth: true
                             height: 1
@@ -952,242 +1185,6 @@ PanelWindow {
                 }
             }
 
-            // ── AI Usage ──────────────────────────────────────────────────
-            Rectangle {
-                id: aiUsageWidget
-                property int aiTab: 0   // 0=Claude, 1=Copilot
-
-                visible: panelContent.activeTab === 0
-                Layout.fillWidth: true
-                implicitHeight:   aiUsageInner.implicitHeight + 16
-                radius: Theme.pillRadius
-                color:  "#262625"
-                border.color: aiTab === 0 ? Theme.claude : Theme.copilot
-                border.width: 1
-                Behavior on border.color { ColorAnimation { duration: Theme.animFast } }
-
-                ColumnLayout {
-                    id: aiUsageInner
-                    anchors.left:        parent.left
-                    anchors.right:       parent.right
-                    anchors.top:         parent.top
-                    anchors.leftMargin:  12
-                    anchors.rightMargin: 12
-                    anchors.topMargin:   8
-                    spacing: 6
-
-                    // ── Provider tab selector ─────────────────────────────
-                    RowLayout {
-                        spacing: 4
-
-                        Rectangle {
-                            property bool _active: aiUsageWidget.aiTab === 0
-                            implicitHeight: 26
-                            implicitWidth:  tabClaudeRow.implicitWidth + 16
-                            radius: 13
-                            color: _active ? Qt.rgba(0.80, 0.47, 0.36, 0.18) : "transparent"
-                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                            RowLayout {
-                                id: tabClaudeRow
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Image {
-                                    source: "../../assets/claudecode-color.svg"
-                                    width: 14; height: 14
-                                    sourceSize: Qt.size(14, 14)
-                                }
-                                Text {
-                                    text: "Claude"
-                                    font.family:    Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 2
-                                    font.weight:    Font.Medium
-                                    color: aiUsageWidget.aiTab === 0 ? "white" : Theme.fgDim
-                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: aiUsageWidget.aiTab = 0
-                            }
-                        }
-
-                        Rectangle {
-                            property bool _active: aiUsageWidget.aiTab === 1
-                            implicitHeight: 26
-                            implicitWidth:  tabCopilotRow.implicitWidth + 16
-                            radius: 13
-                            color: _active ? Qt.rgba(0.949, 0.961, 0.953, 0.18) : "transparent"
-                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                            RowLayout {
-                                id: tabCopilotRow
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Image {
-                                    source: "../../assets/githubcopilot-color.svg"
-                                    width: 14; height: 14
-                                    sourceSize: Qt.size(14, 14)
-                                }
-                                Text {
-                                    text: "Copilot"
-                                    font.family:    Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 2
-                                    font.weight:    Font.Medium
-                                    color: aiUsageWidget.aiTab === 1 ? Theme.copilot : Theme.fgDim
-                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: aiUsageWidget.aiTab = 1
-                            }
-                        }
-
-                        Item { Layout.fillWidth: true }
-                    }
-
-                    // ── Claude content ────────────────────────────────────
-                    ColumnLayout {
-                        visible: aiUsageWidget.aiTab === 0
-                        Layout.fillWidth: true
-                        spacing: 6
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Image {
-                                source: "../../assets/claudecode-color.svg"
-                                width:  22
-                                height: 22
-                                sourceSize: Qt.size(22, 22)
-                            }
-                            Text {
-                                text: "Claude Code"
-                                font.family:    Theme.fontFamily
-                                font.pixelSize: Theme.fontSize - 1
-                                font.weight:    Font.DemiBold
-                                color: "white"
-                                Layout.fillWidth: true
-                            }
-                            Text {
-                                visible: panelContent.claudeLoading
-                                text: ""
-                                font.family:    Theme.iconFamily
-                                font.pixelSize: Theme.fontSize
-                                color: Qt.rgba(1, 1, 1, 0.60)
-                                RotationAnimator on rotation {
-                                    running: panelContent.claudeLoading
-                                    from: 0; to: 360; duration: 1000
-                                    loops: Animation.Infinite
-                                }
-                            }
-                        }
-
-                        ClaudeBar { label: "5h";      value: panelContent.claudeFiveHour }
-                        ClaudeBar { label: "7d";      value: panelContent.claudeSevenDay }
-                        ClaudeBar { label: "credits"; value: panelContent.claudeCredits }
-
-                        Text {
-                            visible: panelContent.claudeFiveHourResetsAt !== "" || panelContent.claudeSevenDayResetsAt !== ""
-                            text: {
-                                function fmtTime(iso) {
-                                    if (!iso) return ""
-                                    var d = new Date(iso)
-                                    return d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
-                                }
-                                function fmtDayTime(iso) {
-                                    if (!iso) return ""
-                                    var d = new Date(iso)
-                                    return d.toLocaleDateString([], {weekday: "short"}) + " " + d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})
-                                }
-                                var parts = []
-                                if (panelContent.claudeFiveHourResetsAt !== "") parts.push("5h resets " + fmtTime(panelContent.claudeFiveHourResetsAt))
-                                if (panelContent.claudeSevenDayResetsAt  !== "") parts.push("7d resets " + fmtDayTime(panelContent.claudeSevenDayResetsAt))
-                                return parts.join(" · ")
-                            }
-                            font.family:    Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 2
-                            color: Theme.fgDim
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    // ── Copilot content ───────────────────────────────────
-                    ColumnLayout {
-                        visible: aiUsageWidget.aiTab === 1
-                        Layout.fillWidth: true
-                        spacing: 6
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-
-                            Image {
-                                source: "../../assets/githubcopilot-color.svg"
-                                width:  22
-                                height: 22
-                                sourceSize: Qt.size(22, 22)
-                            }
-                            Text {
-                                text: "GitHub Copilot"
-                                font.family:    Theme.fontFamily
-                                font.pixelSize: Theme.fontSize - 1
-                                font.weight:    Font.DemiBold
-                                color: "white"
-                                Layout.fillWidth: true
-                            }
-                            Text {
-                                visible: panelContent.copilotLoading
-                                text: ""
-                                font.family:    Theme.iconFamily
-                                font.pixelSize: Theme.fontSize
-                                color: Qt.rgba(1, 1, 1, 0.60)
-                                RotationAnimator on rotation {
-                                    running: panelContent.copilotLoading
-                                    from: 0; to: 360; duration: 1000
-                                    loops: Animation.Infinite
-                                }
-                            }
-                        }
-
-                        ClaudeBar {
-                            label: "premium"
-                            value: panelContent.copilotPremiumTotal > 0
-                                   ? (1 - panelContent.copilotPremiumRemaining / panelContent.copilotPremiumTotal) * 100
-                                   : 0
-                            fillColor: Theme.copilot
-                        }
-
-                        Text {
-                            text: {
-                                var rem   = Math.round(panelContent.copilotPremiumRemaining)
-                                var total = Math.round(panelContent.copilotPremiumTotal)
-                                var extra = ""
-                                if (panelContent.copilotResetDate !== "") {
-                                    var parts = panelContent.copilotResetDate.split("-")
-                                    var monthNames = ["Jan","Feb","Mar","Apr","May","Jun",
-                                                      "Jul","Aug","Sep","Oct","Nov","Dec"]
-                                    extra = " · resets " + monthNames[parseInt(parts[1]) - 1] + " " + parseInt(parts[2])
-                                }
-                                return rem + " of " + total + " remaining" + extra
-                            }
-                            font.family:    Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 2
-                            color: Theme.fgDim
-                            Layout.fillWidth: true
-                        }
-                    }
-                }
-            }
-
             // ── Bottom tab bar ────────────────────────────────────────────
             Rectangle {
                 Layout.fillWidth: true
@@ -1207,22 +1204,10 @@ PanelWindow {
                     onSelect:  panelContent.activeTab = 0
                 }
                 TabButton {
-                    icon:      ""    // coffee
+                    icon:      ""    // tune
                     tabIndex:  1
                     activeTab: panelContent.activeTab
                     onSelect:  panelContent.activeTab = 1
-                }
-                TabButton {
-                    icon:      ""    // calendar_month
-                    tabIndex:  2
-                    activeTab: panelContent.activeTab
-                    onSelect:  panelContent.activeTab = 2
-                }
-                TabButton {
-                    icon:      ""    // tune
-                    tabIndex:  3
-                    activeTab: panelContent.activeTab
-                    onSelect:  panelContent.activeTab = 3
                 }
             }
         }
