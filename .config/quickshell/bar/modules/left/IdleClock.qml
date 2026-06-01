@@ -34,8 +34,11 @@ Item {
         // Idle inhibitor toggle button
         Item {
             id: inhibitBtn
-            implicitWidth:  28
+            implicitWidth: CaffeineState.active && CaffeineState.durationMinutes > 0
+                           ? iconText.implicitWidth + countdownText.implicitWidth + 4 + 8
+                           : 28
             implicitHeight: Theme.barHeight
+            Behavior on implicitWidth { NumberAnimation { duration: Theme.animFast } }
 
             Rectangle {
                 anchors.centerIn: parent
@@ -46,15 +49,28 @@ Item {
                 Behavior on color { ColorAnimation { duration: Theme.animFast } }
             }
 
-            Text {
+            Row {
                 anchors.centerIn: parent
-                text:  CaffeineState.active ? "󰅶" : "󰛊"
-                // 󰛊 = nf-md-coffee (idle allowed), 󰅶 = nf-md-sleep (inhibit active)
-                font.family:    Theme.monoFamily
-                font.pixelSize: Theme.iconSize - 4
-                color: CaffeineState.active ? Theme.accent : Theme.fgDim
+                spacing: 4
 
-                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                Text {
+                    id: iconText
+                    text: CaffeineState.active ? "󰅶" : "󰛊"
+                    // 󰛊 = nf-md-coffee (idle allowed), 󰅶 = nf-md-sleep (inhibit active)
+                    font.family:    Theme.monoFamily
+                    font.pixelSize: Theme.iconSize - 4
+                    color: CaffeineState.active ? Theme.accent : Theme.fgDim
+                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                }
+
+                Text {
+                    id: countdownText
+                    visible: CaffeineState.active && CaffeineState.durationMinutes > 0
+                    text:    CaffeineState.remainingLabel
+                    font.family:    Theme.monoFamily
+                    font.pixelSize: Theme.fontSize - 1
+                    color: Theme.accent
+                }
             }
 
             MouseArea {
