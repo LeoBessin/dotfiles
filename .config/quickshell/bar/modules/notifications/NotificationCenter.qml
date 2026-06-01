@@ -1148,7 +1148,7 @@ ColumnLayout {
 
                         GridLayout {
                             width:         parent.width
-                            columns:       2
+                            columns:       4
                             rowSpacing:    6
                             columnSpacing: 6
 
@@ -1167,17 +1167,19 @@ ColumnLayout {
                                 Layout.fillWidth: true
                             }
                             PowerButton {
-                                icon:      ""
-                                label:     "Reboot"
-                                iconColor: Theme.yellow
-                                command:   ["systemctl", "reboot"]
+                                icon:           ""
+                                label:          "Reboot"
+                                iconColor:      Theme.yellow
+                                requireConfirm: true
+                                command:        ["systemctl", "reboot"]
                                 Layout.fillWidth: true
                             }
                             PowerButton {
-                                icon:      ""
-                                label:     "Shut down"
-                                iconColor: Theme.red
-                                command:   ["systemctl", "poweroff"]
+                                icon:           ""
+                                label:          "Shut down"
+                                iconColor:      Theme.red
+                                requireConfirm: true
+                                command:        ["systemctl", "poweroff"]
                                 Layout.fillWidth: true
                             }
                         }
