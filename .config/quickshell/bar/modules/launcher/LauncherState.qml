@@ -70,6 +70,7 @@ Item {
             "  name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-); " +
             "  exec_cmd=$(grep -m1 '^Exec=' \"$f\" | cut -d= -f2- | sed 's/ --file-forwarding//g;s/ @@[^ ]*//g;s/ %[A-Za-z]//g'); " +
             "  icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2- | sed 's/\\.[Pp][Nn][Gg]$//;s/\\.[Ss][Vv][Gg]$//;s/\\.[Xx][Pp][Mm]$//'); " +
+            "  if [[ \"$icon\" == /* ]] && [ ! -f \"$icon\" ] && [ ! -f \"${icon}.png\" ] && [ ! -f \"${icon}.svg\" ] && [ ! -f \"${icon}.xpm\" ]; then icon=\"\"; fi; " +
             "  [ -z \"$name\" ] && continue; " +
             "  printf '%s\\t%s\\t%s\\n' \"$name\" \"$icon\" \"$exec_cmd\"; " +
             "done | sort -u"
@@ -138,11 +139,52 @@ Item {
                     var tab     = line.indexOf("\t")
                     var id      = tab >= 0 ? line.substring(0, tab) : line
                     var preview = tab >= 0 ? line.substring(tab + 1) : line
-                    root.clipModel.append({ id: id, preview: preview, line: line })
+                    var isBin   = /^\[\[ binary data/.test(preview)
+                    root.clipModel.append({ id: id, preview: preview, line: line,
+                                           isImage: isBin, imgPath: "" })
                 }
             }
         }
-        onExited: root.clipLoaded = true
+        onExited: {
+            var ids = []
+            for (var i = 0; i < root.clipModel.count && ids.length < 30; i++) {
+                if (root.clipModel.get(i).isImage) ids.push(root.clipModel.get(i).id)
+            }
+            if (ids.length === 0) { root.clipLoaded = true; return }
+            var parts = []
+            for (var j = 0; j < ids.length; j++) {
+                var qid  = JSON.stringify(ids[j])
+                var path = JSON.stringify("/tmp/qs_clip_" + ids[j].replace(/[^a-zA-Z0-9_-]/g, "_"))
+                parts.push(
+                    "printf '%s' " + qid + " | cliphist decode > " + path + " 2>/dev/null; " +
+                    "if file --mime-type -b " + path + " 2>/dev/null | grep -q '^image/'; then " +
+                    "printf '%s\\t%s\\n' " + qid + " " + path + "; fi"
+                )
+            }
+            imgDecoder.command = ["bash", "-c", parts.join("; ")]
+            imgDecoder.running = false
+            imgDecoder.running = true
+        }
+    }
+
+    // ── Clipboard image decoder ───────────────────────────────────────────
+    Process {
+        id: imgDecoder
+        stdout: SplitParser {
+            onRead: (line) => {
+                var tab = line.indexOf("\t")
+                if (tab < 0) return
+                var imgId   = line.substring(0, tab)
+                var imgPath = line.substring(tab + 1).trim()
+                for (var i = 0; i < root.clipModel.count; i++) {
+                    if (root.clipModel.get(i).id === imgId) {
+                        root.clipModel.set(i, { imgPath: imgPath })
+                        break
+                    }
+                }
+            }
+        }
+        onExited: { root.clipLoaded = true }
     }
 
     // ── Emoji loader ──────────────────────────────────────────────────────
@@ -220,6 +262,7 @@ Item {
 
     function _loadClip() {
         clipLoaded = false
+        imgDecoder.running = false
         clipModel.clear()
         clipLoader.running = false
         clipLoader.running = true

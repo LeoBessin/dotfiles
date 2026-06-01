@@ -83,6 +83,7 @@ PanelWindow {
 
     // ── Filtered model + search ───────────────────────────────────────────
     property string _searchText: ""
+    property int    _clipPage:   0
 
     ListModel { id: filteredModel }
 
@@ -117,6 +118,7 @@ PanelWindow {
     }
 
     function _rebuildFilter() {
+        _clipPage = 0
         var src = _sourceModel()
         filteredModel.clear()
         if (src) {
@@ -138,7 +140,8 @@ PanelWindow {
                         char:    item.char    ?? "",
                         preview: item.preview ?? "",
                         id:      item.id      ?? "",
-                        line:    item.line    ?? ""
+                        line:    item.line    ?? "",
+                        imgPath: item.imgPath ?? ""
                     })
                 }
             }
@@ -364,12 +367,33 @@ PanelWindow {
                                 else listView.incrementCurrentIndex()
                             }
                             Keys.onLeftPressed: (event) => {
-                                if (LauncherState.mode === "app") gridView.moveCurrentIndexLeft()
-                                else event.accepted = false
+                                if (LauncherState.mode === "app") {
+                                    gridView.moveCurrentIndexLeft()
+                                } else if (LauncherState.mode === "clip") {
+                                    if (root._clipPage > 0) {
+                                        root._clipPage--
+                                        var idx = root._clipPage * Math.max(1, Math.floor(listView.height / 42))
+                                        listView.currentIndex = idx
+                                        listView.positionViewAtIndex(idx, ListView.Beginning)
+                                    }
+                                } else {
+                                    event.accepted = false
+                                }
                             }
                             Keys.onRightPressed: (event) => {
-                                if (LauncherState.mode === "app") gridView.moveCurrentIndexRight()
-                                else event.accepted = false
+                                if (LauncherState.mode === "app") {
+                                    gridView.moveCurrentIndexRight()
+                                } else if (LauncherState.mode === "clip") {
+                                    var pageSize = Math.max(1, Math.floor(listView.height / 42))
+                                    var nextIdx  = (root._clipPage + 1) * pageSize
+                                    if (nextIdx < filteredModel.count) {
+                                        root._clipPage++
+                                        listView.currentIndex = nextIdx
+                                        listView.positionViewAtIndex(nextIdx, ListView.Beginning)
+                                    }
+                                } else {
+                                    event.accepted = false
+                                }
                             }
                             Keys.onReturnPressed: {
                                 var idx = LauncherState.mode === "app"
@@ -522,7 +546,7 @@ PanelWindow {
                             required property var model
                             required property int index
                             width:  listView.width
-                            height: 40
+                            height: LauncherState.mode === "clip" && model.imgPath !== "" ? 60 : 40
 
                             MouseArea {
                                 anchors.fill: parent
@@ -542,7 +566,8 @@ PanelWindow {
 
                                 // Left glyph
                                 Item {
-                                    width: 28; height: 28
+                                    width:  LauncherState.mode === "clip" && model.imgPath !== "" ? 48 : 28
+                                    height: LauncherState.mode === "clip" && model.imgPath !== "" ? 48 : 28
                                     Layout.alignment: Qt.AlignVCenter
 
                                     Image {
@@ -575,9 +600,27 @@ PanelWindow {
                                         color: Theme.launcherFg
                                     }
 
+                                    Rectangle {
+                                        anchors.centerIn: parent
+                                        visible: LauncherState.mode === "clip" && model.imgPath !== ""
+                                        width: 44; height: 44
+                                        radius: 4
+                                        clip: true
+                                        color: "transparent"
+                                        Image {
+                                            anchors.fill: parent
+                                            source:       model.imgPath !== "" ? "file://" + model.imgPath : ""
+                                            sourceSize:   Qt.size(44, 44)
+                                            fillMode:     Image.PreserveAspectCrop
+                                            smooth:       true
+                                            mipmap:       true
+                                            asynchronous: true
+                                        }
+                                    }
+
                                     Text {
                                         anchors.centerIn: parent
-                                        visible: LauncherState.mode === "clip"
+                                        visible: LauncherState.mode === "clip" && model.imgPath === ""
                                         text: ""
                                         font.family:    Theme.iconFamily
                                         font.pixelSize: Theme.iconSize
@@ -594,7 +637,7 @@ PanelWindow {
                                             case "files":  return model.name    ?? ""
                                             case "emoji":
                                             case "icon":   return model.name    ?? ""
-                                            case "clip":   return model.preview ?? ""
+                                            case "clip":   return model.imgPath !== "" ? "Image" : (model.preview ?? "")
                                             default:       return ""
                                         }
                                     }

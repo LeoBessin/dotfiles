@@ -4,6 +4,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import "modules"
 import "modules/notifications"
 import "modules/launcher"
@@ -29,6 +30,13 @@ ShellRoot {
     IpcHandler {
         target: "launcher"
         function open(mode: string) {
+            var focusedName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
+            for (var i = 0; i < Quickshell.screens.length; i++) {
+                if (Quickshell.screens[i].name === focusedName) {
+                    LauncherState.open(mode, Quickshell.screens[i])
+                    return
+                }
+            }
             LauncherState.open(mode, Quickshell.screens[0])
         }
     }
