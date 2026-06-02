@@ -31,7 +31,7 @@
 </div>
 
 <div align="center">
-  <video src="assets/preview_video.mp4" autoplay loop muted playsinline width="100%"></video>
+  <video src="https://github.com/user-attachments/assets/1374b80a-9ebe-49f9-bc8f-178912d5d1a7" autoplay loop muted playsinline width="100%"></video>
 </div>
 
 ---
