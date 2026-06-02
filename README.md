@@ -30,8 +30,9 @@
   <img src="assets/preview_clip-history.png" alt="Clipboard manager" width="49%"/>
 </div>
 
-<!-- Video showcase — replace the URL with your actual video link -->
-> **Showcase video:** _coming soon_ <!-- https://your-video-link-here -->
+<div align="center">
+  <video src="assets/preview_video.mp4" autoplay loop muted playsinline width="100%"></video>
+</div>
 
 ---
 
