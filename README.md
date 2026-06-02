@@ -17,17 +17,17 @@
 </div>
 
 <div align="center">
-  <img src="assets/preview_workspace_switch.png" alt="Workspace switcher" width="49%"/>
-  <img src="assets/preview_app-launcher.png" alt="App launcher" width="49%"/>
+  <img src="assets/preview_workspace_switch.jpg" alt="Workspace switcher" width="49%"/>
+  <img src="assets/preview_app-launcher.jpg" alt="App launcher" width="49%"/>
 </div>
 
 <div align="center">
-  <img src="assets/preview_notification-center-tab-1.png" alt="Notification center — notifications" width="49%"/>
-  <img src="assets/preview_notification-center-tab-2.png" alt="Notification center — settings" width="49%"/>
+  <img src="assets/preview_notification-center-tab-1.jpg" alt="Notification center — notifications" width="49%"/>
+  <img src="assets/preview_notification-center-tab-2.jpg" alt="Notification center — settings" width="49%"/>
 </div>
 
 <div align="center">
-  <img src="assets/preview_clip-history.png" alt="Clipboard manager" width="49%"/>
+  <img src="assets/preview_clip-history.jpg" alt="Clipboard manager" width="49%"/>
 </div>
 
 <div align="center">
