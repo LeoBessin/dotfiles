@@ -62,7 +62,7 @@ Item {
             "{ IFS=: read -ra dirs <<< \"${XDG_DATA_DIRS:-/usr/local/share:/usr/share}\"; " +
             "for d in \"${XDG_DATA_HOME:-$HOME/.local/share}\" \"${dirs[@]}\"; do echo \"$d/applications\"; done; } | " +
             "xargs -I{} find {} -name '*.desktop' 2>/dev/null | " +
-            "sort -u | " +
+            "awk -F/ '!seen[$NF]++' | " +
             "xargs grep -l '^Type=Application' 2>/dev/null | " +
             "while IFS= read -r f; do " +
             "  nodisplay=$(grep -m1 '^NoDisplay=' \"$f\" | cut -d= -f2-); " +
