@@ -76,4 +76,7 @@ QtObject {
     readonly property int launcherWidth:  580
     readonly property int launcherHeight: 680
     readonly property int launcherRadius: 16
+
+    // ── AI panel ──────────────────────────────────────────────────────────
+    readonly property int aiPanelWidth: 420
 }

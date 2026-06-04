@@ -7,6 +7,7 @@ import "modules"
 import "modules/left"
 import "modules/center"
 import "modules/right"
+import "modules/ai"
 
 PanelWindow {
     id: root
@@ -52,6 +53,7 @@ PanelWindow {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.widgetSpacing
 
+        AiWidget  { barScreen: root.screen }
         SystemStats {}
         IdleClock { barWindow: root }
     }

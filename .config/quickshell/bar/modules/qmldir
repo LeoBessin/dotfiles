@@ -1,5 +1,7 @@
 singleton Theme 1.0 Theme.qml
 singleton NotifService 1.0 NotifService.qml
+singleton AiPanelState 1.0 AiPanelState.qml
+singleton LemonadeService 1.0 LemonadeService.qml
 singleton CaffeineState 1.0 CaffeineState.qml
 singleton UpdateService 1.0 UpdateService.qml
 singleton VolumeService 1.0 VolumeService.qml

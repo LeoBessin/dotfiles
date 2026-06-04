@@ -9,6 +9,7 @@ import "modules"
 import "modules/notifications"
 import "modules/launcher"
 import "modules/workspaces"
+import "modules/ai"
 
 ShellRoot {
     FontLoader {
@@ -59,6 +60,11 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         Bar {}
+    }
+
+    Variants {
+        model: Quickshell.screens
+        AiPanel {}
     }
 
     Variants {
