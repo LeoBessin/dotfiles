@@ -1,0 +1,2 @@
+singleton WorkspaceSwitcherState 1.0 WorkspaceSwitcherState.qml
+WorkspaceSwitcher 1.0 WorkspaceSwitcher.qml
