@@ -77,6 +77,7 @@ PanelWindow {
         anchors.bottom:      parent.bottom
         anchors.right:       parent.right
         anchors.topMargin:   Theme.barHeight + 6
+        anchors.bottomMargin:6
         anchors.rightMargin: root.isActive ? 8 : -width
 
         width: Theme.notifPanelWidth
