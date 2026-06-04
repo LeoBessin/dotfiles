@@ -57,7 +57,7 @@ Item {
                     id: iconText
                     text: CaffeineState.active ? "󰅶" : "󰛊"
                     // 󰛊 = nf-md-coffee (idle allowed), 󰅶 = nf-md-sleep (inhibit active)
-                    font.family:    Theme.monoFamily
+                    font.family:    Theme.nerdFamily
                     font.pixelSize: Theme.iconSize - 4
                     color: CaffeineState.active ? Theme.accent : Theme.fgDim
                     Behavior on color { ColorAnimation { duration: Theme.animFast } }
