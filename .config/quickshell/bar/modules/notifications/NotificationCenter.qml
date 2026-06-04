@@ -90,8 +90,7 @@ PanelWindow {
             NumberAnimation { duration: Theme.animFast }
         }
 
-        // color:        Qt.rgba(0.10, 0.09, 0.15, 0.55)
-        color:        Qt.rgba(0.10, 0.09, 0.15, 0.85)
+        color:        Theme.notifPanelBg
         radius:       Theme.radius
         border.color: Theme.notifBorderBase
         border.width: 1

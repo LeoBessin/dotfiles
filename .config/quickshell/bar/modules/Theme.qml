@@ -39,15 +39,23 @@ QtObject {
     readonly property int animMed:        220
 
     // ── Notification palette ──────────────────────────────────────────────
-    readonly property color notifCardBg:     Qt.rgba(0.18, 0.16, 0.30, 0.80)
-    readonly property color notifBorderDim:  Qt.rgba(0.70, 0.62, 0.86, 0.10)
-    readonly property color notifBorderMid:  Qt.rgba(0.70, 0.62, 0.86, 0.15)
-    readonly property color notifBorderBase: Qt.rgba(0.70, 0.62, 0.86, 0.20)
-    readonly property color notifHoverBg:    Qt.rgba(0.70, 0.62, 0.86, 0.08)
+    readonly property color notifPanelBg:        Qt.rgba(0.10, 0.09, 0.15, 0.85)  // panel background
+    readonly property color notifCardBg:         Qt.rgba(0.18, 0.16, 0.30, 0.80)  // unread card bg / stack shadows
+    readonly property color notifReadBg:         Qt.rgba(0.10, 0.10, 0.18, 0.50)  // read card background
+    readonly property color notifIconBg:         Qt.rgba(0.18, 0.16, 0.30, 0.60)  // icon box background
+    readonly property color notifUnreadBorder:   Qt.rgba(0.70, 0.62, 0.86, 0.25)  // unread card / toast border
+    readonly property color notifBorderDim:      Qt.rgba(0.70, 0.62, 0.86, 0.10)  // dividers, group header border
+    readonly property color notifBorderMid:      Qt.rgba(0.70, 0.62, 0.86, 0.15)  // section dividers, action buttons
+    readonly property color notifBorderBase:     Qt.rgba(0.70, 0.62, 0.86, 0.20)  // panel outer border
+    readonly property color notifHoverBg:        Qt.rgba(0.70, 0.62, 0.86, 0.08)  // read notification border
+    readonly property color notifGroupHeaderBg:  Qt.rgba(0.12, 0.11, 0.22, 0.70)  // group header background
+    readonly property color notifGroupHoverBg:   Qt.rgba(0.18, 0.17, 0.30, 0.85)  // group header hover
+    readonly property color notifBadgeDimBg:     Qt.rgba(0.70, 0.62, 0.86, 0.25)  // read count badge background
 
     // ── Notification geometry ─────────────────────────────────────────────
     readonly property int notifPanelWidth:   380
     readonly property int notifCardWidth:    360
+    readonly property int notifIconBoxSize:  36   // icon/image box in notification cards
 
     // ── Notification timings ──────────────────────────────────────────────
     readonly property int toastDuration:     5000

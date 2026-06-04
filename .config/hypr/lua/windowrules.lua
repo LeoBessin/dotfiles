@@ -120,6 +120,7 @@ local blur_namespaces = {
     "swaync-control-center",
     "logout_dialog",
     "quickshell-notif-center",
+    "quickshell-toasts",
     "quickshell-bar",
     "quickshell-launcher",
     "quickshell-workspaces",

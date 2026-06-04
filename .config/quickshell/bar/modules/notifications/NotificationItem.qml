@@ -28,12 +28,12 @@ Rectangle {
     color:  itemMouse.containsMouse
             ? Theme.bgHover
             : read
-              ? Qt.rgba(0.10, 0.10, 0.18, 0.50)
-              : Qt.rgba(0.18, 0.16, 0.30, 0.80)
+              ? Theme.notifReadBg
+              : Theme.notifCardBg
 
     border.color: read
         ? Theme.notifHoverBg
-        : Qt.rgba(0.70, 0.62, 0.86, 0.22)
+        : Theme.notifUnreadBorder
     border.width: 1
 
     Behavior on color        { ColorAnimation { duration: Theme.animFast } }
@@ -97,10 +97,10 @@ Rectangle {
 
         // App icon — large, left column
         Rectangle {
-            width:  36
-            height: 36
+            width:  Theme.notifIconBoxSize
+            height: Theme.notifIconBoxSize
             radius: 8
-            color:  Qt.rgba(0.18, 0.16, 0.30, 0.60)
+            color:  Theme.notifIconBg
             Layout.alignment: Qt.AlignTop
             clip: true
 

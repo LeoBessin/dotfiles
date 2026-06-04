@@ -15,7 +15,7 @@ Item {
     signal clearRequested
     signal toggleCollapse
 
-    implicitWidth: 356
+    implicitWidth: Theme.notifCardWidth
 
     readonly property var _items: {
         var arr = []
@@ -65,8 +65,8 @@ Item {
         implicitHeight: headerRow.implicitHeight + 8
         radius: Theme.pillRadius
         color: headerMouse.containsMouse && !root.collapsed
-               ? Qt.rgba(0.18, 0.17, 0.30, 0.85)
-               : Qt.rgba(0.12, 0.11, 0.22, 0.70)
+               ? Theme.notifGroupHoverBg
+               : Theme.notifGroupHeaderBg
         border.color: Theme.notifBorderDim
         border.width: 1
         Behavior on color { ColorAnimation { duration: Theme.animFast } }
@@ -111,7 +111,7 @@ Item {
                 implicitWidth:  badgeLbl.implicitWidth + 8
                 implicitHeight: 16
                 radius: 8
-                color:  root.unreadCount > 0 ? Theme.accent : Qt.rgba(0.70, 0.62, 0.86, 0.25)
+                color:  root.unreadCount > 0 ? Theme.accent : Theme.notifBadgeDimBg
 
                 Text {
                     id: badgeLbl
@@ -201,7 +201,7 @@ Item {
                 radius: Theme.pillRadius
                 opacity: 0.25
                 color: Theme.notifCardBg
-                border.color: Qt.rgba(0.70, 0.62, 0.86, 0.12)
+                border.color: Theme.notifBorderDim
                 border.width: 1
             }
 
@@ -216,7 +216,7 @@ Item {
                 radius: Theme.pillRadius
                 opacity: 0.5
                 color: Theme.notifCardBg
-                border.color: Qt.rgba(0.70, 0.62, 0.86, 0.16)
+                border.color: Theme.notifBorderMid
                 border.width: 1
             }
 
