@@ -305,20 +305,25 @@ Item {
                                 id: userBubble
                                 anchors.right: parent.right
                                 width: Math.min(userText.implicitWidth + 20, parent.width * 0.85)
-                                height: userText.implicitHeight + 16
+                                height: userText.contentHeight + 16
                                 radius: Theme.pillRadius
                                 color: Qt.rgba(0.44, 0.39, 0.68, 0.35)
                                 border.color: Qt.rgba(0.70, 0.62, 0.86, 0.25)
                                 border.width: 1
 
-                                Text {
+                                TextEdit {
                                     id: userText
                                     anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: 10; rightMargin: 10; topMargin: 8 }
                                     text: model.inputText
+                                    textFormat: TextEdit.PlainText
+                                    readOnly: true
+                                    selectByMouse: true
+                                    selectedTextColor: Theme.bgSolid
+                                    selectionColor:    Theme.accent
                                     font.family:    Theme.fontFamily
                                     font.pixelSize: Theme.fontSize
                                     color: Theme.fg
-                                    wrapMode: Text.Wrap
+                                    wrapMode: TextEdit.Wrap
                                 }
                             }
                         }
@@ -333,20 +338,25 @@ Item {
                                 anchors.left: parent.left
                                 anchors.leftMargin: 6
                                 width: Math.min(transText.implicitWidth + (model.outputText !== "…" ? 40 : 20), parent.width * 0.85)
-                                height: transText.implicitHeight + 16
+                                height: transText.contentHeight + 16
                                 radius: Theme.pillRadius
                                 color: Theme.notifCardBg
                                 border.color: Theme.notifBorderDim
                                 border.width: 1
 
-                                Text {
+                                TextEdit {
                                     id: transText
-                                    anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 10; rightMargin: model.outputText !== "…" ? 30 : 10 }
+                                    anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: 10; rightMargin: model.outputText !== "…" ? 30 : 10; topMargin: 8 }
                                     text: model.outputText
+                                    textFormat: TextEdit.PlainText
+                                    readOnly: true
+                                    selectByMouse: true
+                                    selectedTextColor: Theme.bgSolid
+                                    selectionColor:    Theme.accent
                                     font.family:    Theme.fontFamily
                                     font.pixelSize: Theme.fontSize
                                     color: model.outputText === "…" ? Theme.fgDim : Theme.fg
-                                    wrapMode: Text.Wrap
+                                    wrapMode: TextEdit.Wrap
                                 }
 
                                 Text {
@@ -392,8 +402,12 @@ Item {
 
         // Input row
         Rectangle {
+            id: inputRowBar
             Layout.fillWidth: true
-            height: inputRow.implicitHeight + 16
+            // Grow with content up to a cap, then the Flickable scrolls.
+            // Derived from contentHeight (not inputPill.height) to avoid a binding loop.
+            property real pillHeight: Math.min(Math.max(inputArea.contentHeight + 14, 36), 200)
+            Layout.preferredHeight: pillHeight + 16
             color: "transparent"
 
             RowLayout {
@@ -402,31 +416,42 @@ Item {
                 spacing: 8
 
                 Rectangle {
+                    id: inputPill
                     Layout.fillWidth: true
-                    height: Math.min(Math.max(inputArea.implicitHeight + 14, 36), 100)
+                    Layout.preferredHeight: inputRowBar.pillHeight
                     radius: Theme.pillRadius
                     color: Qt.rgba(1, 1, 1, 0.04)
                     border.color: inputArea.activeFocus ? Theme.notifBorderBase : Theme.notifBorderDim
                     border.width: 1
 
-                    TextArea {
-                        id: inputArea
-                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 10 }
-                        placeholderText: "Enter text to translate…"
-                        placeholderTextColor: Theme.fgDim
-                        font.family:    Theme.fontFamily
-                        font.pixelSize: Theme.fontSize
-                        color: Theme.fg
-                        wrapMode: TextArea.Wrap
-                        background: null
-                        padding: 0
+                    Flickable {
+                        id: inputFlick
+                        anchors { fill: parent; topMargin: 7; bottomMargin: 7; leftMargin: 10; rightMargin: 10 }
+                        contentWidth: width
+                        contentHeight: inputArea.contentHeight
+                        clip: true
+                        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                        onContentHeightChanged: contentY = Math.max(0, contentHeight - height)
 
-                        Keys.onReturnPressed: (event) => {
-                            if (event.modifiers & Qt.ShiftModifier) {
-                                event.accepted = false
-                            } else {
-                                event.accepted = true
-                                root.doTranslate()
+                        TextArea {
+                            id: inputArea
+                            width: inputFlick.width
+                            placeholderText: "Enter text to translate…"
+                            placeholderTextColor: Theme.fgDim
+                            font.family:    Theme.fontFamily
+                            font.pixelSize: Theme.fontSize
+                            color: Theme.fg
+                            wrapMode: TextArea.Wrap
+                            background: null
+                            padding: 0
+
+                            Keys.onReturnPressed: (event) => {
+                                if (event.modifiers & Qt.ShiftModifier) {
+                                    event.accepted = false
+                                } else {
+                                    event.accepted = true
+                                    root.doTranslate()
+                                }
                             }
                         }
                     }

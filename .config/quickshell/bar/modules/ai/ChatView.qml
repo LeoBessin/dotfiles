@@ -104,6 +104,25 @@ Item {
         }
     }
 
+    // ── Markdown segment parser ───────────────────────────────────────────
+    function parseSegments(text) {
+        var segments = []
+        var parts = text.split("```")
+        for (var i = 0; i < parts.length; i++) {
+            if (i % 2 === 0) {
+                if (parts[i].length > 0)
+                    segments.push({ type: "text", content: parts[i] })
+            } else {
+                var lines = parts[i].split('\n')
+                var code = lines.slice(1).join('\n')
+                if (code.charAt(code.length - 1) === '\n')
+                    code = code.slice(0, -1)
+                segments.push({ type: "code", lang: lines[0].trim(), content: code })
+            }
+        }
+        return segments
+    }
+
     // ── Send message ──────────────────────────────────────────────────────
     function sendMessage() {
         var input = inputArea.text.trim()
@@ -122,6 +141,7 @@ Item {
 
         // Collect API messages from current conversation history
         var apiMessages = []
+        apiMessages.push({ role: "system", content: "You are a concise assistant. Answer directly and briefly — one to three sentences unless detail is required. Use fenced code blocks (```) for all code, commands, and file paths. Skip preamble, affirmations, and restatements of the question." })
         for (var i = 0; i < messages.count; i++) {
             var m = messages.get(i)
             var raw = m.raw || m.content
@@ -216,6 +236,17 @@ Item {
         base64Proc.command = ["sh", "-c", "base64 -w0 \"" + path.replace(/"/g, '\\"') + "\""]
         base64Proc.running = false
         base64Proc.running = true
+    }
+
+    // ── Clipboard ─────────────────────────────────────────────────────────
+    Process {
+        id: clipProc
+    }
+
+    function copyToClipboard(text) {
+        clipProc.command = ["sh", "-c", "printf '%s' " + JSON.stringify(text) + " | wl-copy"]
+        clipProc.running = false
+        clipProc.running = true
     }
 
     // ── UI ────────────────────────────────────────────────────────────────
@@ -634,9 +665,12 @@ Item {
                 delegate: Item {
                     id: msgDelegate
                     property bool isUser: model.role === "user"
-                    property bool isStreaming: model.role === "assistant" &&
-                                               model.content === "" &&
-                                               root.streaming
+                    property string msgContent: model.content || ""
+                    property bool isLiveStream: root.streaming && !isUser &&
+                                                index === root._chatAssistantIdx
+                    property bool isInitialStream: isLiveStream && msgContent === ""
+                    property var  segments: (!isUser && !isLiveStream)
+                                            ? root.parseSegments(msgContent) : []
 
                     width: msgView.width - 20
                     height: bubbleRect.height
@@ -646,39 +680,170 @@ Item {
                         anchors.right:      isUser ? parent.right : undefined
                         anchors.left:       isUser ? undefined    : parent.left
                         anchors.leftMargin: isUser ? 0            : 6
-                        width: Math.min(msgText.implicitWidth + 20, parent.width * 0.88)
-                        height: msgText.implicitHeight + 16
+                        width: isUser
+                               ? Math.min(userText.implicitWidth + 20, parent.width * 0.88)
+                               : parent.width
+                        height: isUser       ? userText.contentHeight + 16
+                              : isLiveStream ? streamText.contentHeight + 16
+                              :                msgCol.implicitHeight + 16
                         radius: Theme.pillRadius
-                        color: isUser
-                               ? Qt.rgba(0.44, 0.39, 0.68, 0.35)
-                               : Theme.notifCardBg
-                        border.color: isUser
-                                      ? Qt.rgba(0.70, 0.62, 0.86, 0.25)
-                                      : Theme.notifBorderDim
+                        clip: true
+                        color: isUser ? Qt.rgba(0.44, 0.39, 0.68, 0.35) : Theme.notifCardBg
+                        border.color: isUser ? Qt.rgba(0.70, 0.62, 0.86, 0.25) : Theme.notifBorderDim
                         border.width: 1
 
-                        Text {
-                            id: msgText
-                            anchors {
-                                left: parent.left; right: parent.right
-                                leftMargin: 10; rightMargin: 10
-                                top:              isUser ? parent.top          : undefined
-                                verticalCenter:   isUser ? undefined           : parent.verticalCenter
-                                topMargin:        isUser ? 8                   : 0
-                            }
-                            text: isStreaming ? "…" : (model.content || "")
-                            textFormat: isUser ? Text.PlainText : Text.MarkdownText
+                        // ── User bubble ───────────────────────────────────
+                        TextEdit {
+                            id: userText
+                            visible: isUser
+                            anchors { left: parent.left; right: parent.right
+                                      leftMargin: 10; rightMargin: 10
+                                      top: parent.top; topMargin: 8 }
+                            text: isUser ? msgDelegate.msgContent : ""
+                            textFormat: TextEdit.PlainText
+                            readOnly: true
+                            selectByMouse: true
+                            selectedTextColor: Theme.bgSolid
+                            selectionColor:    Theme.accent
                             font.family:    Theme.fontFamily
-                            font.pixelSize: isStreaming ? Theme.fontSize - 1 : Theme.fontSize
-                            color: isStreaming ? Theme.fgDim : Theme.fg
-                            wrapMode: Text.Wrap
-                            linkColor: Theme.accent
+                            font.pixelSize: Theme.fontSize
+                            color: Theme.fg
+                            wrapMode: TextEdit.Wrap
+                        }
+
+                        // ── Live-stream bubble ────────────────────────────
+                        TextEdit {
+                            id: streamText
+                            visible: isLiveStream
+                            anchors { left: parent.left; right: parent.right
+                                      leftMargin: 10; rightMargin: 10
+                                      top: parent.top; topMargin: 8 }
+                            text: isInitialStream ? "…" : msgDelegate.msgContent
+                            textFormat: TextEdit.MarkdownText
+                            readOnly: true
+                            selectByMouse: true
+                            selectedTextColor: Theme.bgSolid
+                            selectionColor:    Theme.accent
+                            font.family:    Theme.fontFamily
+                            font.pixelSize: isInitialStream ? Theme.fontSize - 1 : Theme.fontSize
+                            color: isInitialStream ? Theme.fgDim : Theme.fg
+                            wrapMode: TextEdit.Wrap
 
                             SequentialAnimation on opacity {
-                                running: isStreaming
+                                running: isInitialStream
                                 loops: Animation.Infinite
                                 NumberAnimation { to: 0.3; duration: 600 }
                                 NumberAnimation { to: 1.0; duration: 600 }
+                            }
+                        }
+
+                        // ── Completed assistant bubble ────────────────────
+                        Column {
+                            id: msgCol
+                            visible: !isUser && !isLiveStream
+                            anchors { left: parent.left; right: parent.right
+                                      leftMargin: 10; rightMargin: 10
+                                      top: parent.top; topMargin: 8 }
+                            spacing: 6
+
+                            Repeater {
+                                model: msgDelegate.segments
+
+                                delegate: Item {
+                                    id: segItem
+                                    property var seg: modelData
+                                    width: msgCol.width
+                                    height: seg.type === "code"
+                                            ? codeBox.height
+                                            : segEdit.contentHeight
+
+                                    // Plain text / markdown segment — selectable
+                                    TextEdit {
+                                        id: segEdit
+                                        visible: seg.type === "text"
+                                        width: parent.width
+                                        height: contentHeight
+                                        text: seg.type === "text" ? seg.content : ""
+                                        textFormat: TextEdit.MarkdownText
+                                        readOnly: true
+                                        selectByMouse: true
+                                        font.family:    Theme.fontFamily
+                                        font.pixelSize: Theme.fontSize
+                                        color: Theme.fg
+                                        wrapMode: TextEdit.Wrap
+                                        selectedTextColor: Theme.bgSolid
+                                        selectionColor:    Theme.accent
+                                    }
+
+                                    // Code block — monospace, selectable, copy button
+                                    Rectangle {
+                                        id: codeBox
+                                        visible: seg.type === "code"
+                                        width: parent.width
+                                        height: codeEdit.contentHeight + 32
+                                        radius: 4
+                                        color: Qt.rgba(0, 0, 0, 0.35)
+                                        border.color: Theme.notifBorderMid
+                                        border.width: 1
+                                        clip: true
+
+                                        TextEdit {
+                                            id: codeEdit
+                                            anchors { left: parent.left; right: parent.right
+                                                      leftMargin: 8; rightMargin: 8
+                                                      top: parent.top; topMargin: 16 }
+                                            height: contentHeight
+                                            text: seg.type === "code" ? seg.content : ""
+                                            textFormat: TextEdit.PlainText
+                                            readOnly: true
+                                            selectByMouse: true
+                                            font.family:    Theme.monoFamily
+                                            font.pixelSize: Theme.fontSize - 1
+                                            color: Theme.fg
+                                            wrapMode: TextEdit.WrapAnywhere
+                                            selectedTextColor: Theme.bgSolid
+                                            selectionColor:    Theme.accent
+                                        }
+
+                                        Rectangle {
+                                            anchors { right: parent.right; top: parent.top; margins: 4 }
+                                            width: 20; height: 20
+                                            radius: 4
+                                            color: codeHov.containsMouse ? Theme.bgHover : "transparent"
+                                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                                            Text {
+                                                id: copyIcon
+                                                property bool copied: false
+                                                anchors.centerIn: parent
+                                                text: copied ? "check" : "content_copy"
+                                                font.family:    Theme.iconFamily
+                                                font.pixelSize: 12
+                                                color: copied ? Theme.green
+                                                              : codeHov.containsMouse ? Theme.accent : Theme.fgDim
+                                                Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                                                Timer {
+                                                    id: copyResetTimer
+                                                    interval: 1500
+                                                    onTriggered: copyIcon.copied = false
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: codeHov
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    root.copyToClipboard(seg.content)
+                                                    copyIcon.copied = true
+                                                    copyResetTimer.restart()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -785,8 +950,12 @@ Item {
 
         // Input row
         Rectangle {
+            id: inputRowBar
             Layout.fillWidth: true
-            height: inputRowLayout.implicitHeight + 14
+            // Grow with content up to a cap, then the Flickable scrolls.
+            // Derived from contentHeight (not inputPill.height) to avoid a binding loop.
+            property real pillHeight: Math.min(Math.max(inputArea.contentHeight + 14, 36), 220)
+            Layout.preferredHeight: pillHeight + 14
             color: "transparent"
 
             RowLayout {
@@ -829,34 +998,44 @@ Item {
 
                 // Text input
                 Rectangle {
+                    id: inputPill
                     Layout.fillWidth: true
-                    height: Math.min(Math.max(inputArea.implicitHeight + 14, 36), 120)
+                    Layout.preferredHeight: inputRowBar.pillHeight
                     radius: Theme.pillRadius
                     color: Qt.rgba(1, 1, 1, 0.04)
                     border.color: inputArea.activeFocus ? Theme.notifBorderBase : Theme.notifBorderDim
                     border.width: 1
 
-                    TextArea {
-                        id: inputArea
-                        anchors { left: parent.left; right: parent.right;
-                                  verticalCenter: parent.verticalCenter; margins: 10 }
-                        placeholderText: LemonadeService.serverRunning
-                                         ? "Message…" : "Server offline"
-                        placeholderTextColor: Theme.fgDim
-                        font.family:    Theme.fontFamily
-                        font.pixelSize: Theme.fontSize
-                        color: Theme.fg
-                        wrapMode: TextArea.Wrap
-                        background: null
-                        padding: 0
-                        enabled: LemonadeService.serverRunning && !root.streaming
+                    Flickable {
+                        id: inputFlick
+                        anchors { fill: parent; topMargin: 7; bottomMargin: 7; leftMargin: 10; rightMargin: 10 }
+                        contentWidth: width
+                        contentHeight: inputArea.contentHeight
+                        clip: true
+                        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                        onContentHeightChanged: contentY = Math.max(0, contentHeight - height)
 
-                        Keys.onReturnPressed: (event) => {
-                            if (event.modifiers & Qt.ShiftModifier) {
-                                event.accepted = false
-                            } else {
-                                event.accepted = true
-                                root.sendMessage()
+                        TextArea {
+                            id: inputArea
+                            width: inputFlick.width
+                            placeholderText: LemonadeService.serverRunning
+                                             ? "Message…" : "Server offline"
+                            placeholderTextColor: Theme.fgDim
+                            font.family:    Theme.fontFamily
+                            font.pixelSize: Theme.fontSize
+                            color: Theme.fg
+                            wrapMode: TextArea.Wrap
+                            background: null
+                            padding: 0
+                            enabled: LemonadeService.serverRunning && !root.streaming
+
+                            Keys.onReturnPressed: (event) => {
+                                if (event.modifiers & Qt.ShiftModifier) {
+                                    event.accepted = false
+                                } else {
+                                    event.accepted = true
+                                    root.sendMessage()
+                                }
                             }
                         }
                     }
