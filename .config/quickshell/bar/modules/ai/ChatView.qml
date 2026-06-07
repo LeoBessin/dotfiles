@@ -7,100 +7,43 @@ import ".."
 Item {
     id: root
 
-    // ── Conversation data ─────────────────────────────────────────────────
-    property var conversations: []      // [{id, title, model, messages:[]}]
-    property int currentConvIndex: -1
     property bool streaming: false
     property string currentModel: ""
     property string attachedFilePath: ""
     property string attachedFileBase64: ""
     property bool showFileInput: false
-    property int deleteConfirmIndex: -1  // which conv pill shows delete confirm
 
     property ListModel messages: ListModel {}
+
+    readonly property string _sessionPath: "/home/nexus/.local/share/quickshell/ai_session.json"
+    property bool _sessionLoaded: false
+
+    function _maybeAutoLoad() {
+        if (!_sessionLoaded) return
+        if (!LemonadeService.serverRunning) return
+        if (LemonadeService.loadedModel !== "") return
+        if (currentModel === "") return
+        LemonadeService.loadModel(currentModel)
+    }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     Component.onCompleted: {
         LemonadeService.refreshStatus()
-        newConversation()
+        if (LemonadeService.loadedModel !== "")
+            currentModel = LemonadeService.loadedModel
+        sessionReadProc.command = ["cat", root._sessionPath]
+        sessionReadProc.running = true
     }
 
-    onCurrentModelChanged: {
-        if (currentConvIndex >= 0 && conversations[currentConvIndex])
-            conversations[currentConvIndex].model = currentModel
-    }
-
-    // ── Conversation management ───────────────────────────────────────────
-    function newConversation() {
-        _saveCurrentConv()
-        var defaultModel = LemonadeService.models.count > 0
-                           ? LemonadeService.models.get(0).name : ""
-        var conv = { id: "conv_" + Date.now(), title: "New conversation",
-                     model: defaultModel, messages: [] }
-        conversations.push(conv)
-        conversations = conversations
-        currentConvIndex = conversations.length - 1
-        messages.clear()
-        currentModel = defaultModel
-        deleteConfirmIndex = -1
-    }
-
-    function switchConv(index) {
-        if (index === currentConvIndex) return
-        _saveCurrentConv()
-        _loadConv(index)
-        deleteConfirmIndex = -1
-    }
-
-    function deleteConv(index) {
-        deleteConfirmIndex = -1
-        if (conversations.length <= 1) {
-            // Just clear the single conversation
-            messages.clear()
-            conversations[0].title    = "New conversation"
-            conversations[0].messages = []
-            conversations = conversations
-            return
+    // Always follow the loaded model; also trigger auto-load after status check
+    Connections {
+        target: LemonadeService
+        function onLoadedModelChanged() {
+            if (LemonadeService.loadedModel !== "")
+                root.currentModel = LemonadeService.loadedModel
         }
-        conversations.splice(index, 1)
-        conversations = conversations
-        var newIdx = Math.min(currentConvIndex, conversations.length - 1)
-        currentConvIndex = -1   // force reload
-        _loadConv(newIdx)
-    }
-
-    function _saveCurrentConv() {
-        if (currentConvIndex < 0 || !conversations[currentConvIndex]) return
-        var msgs = []
-        for (var i = 0; i < messages.count; i++) {
-            var m = messages.get(i)
-            msgs.push({ role: m.role, content: m.content, raw: m.raw || m.content })
-        }
-        conversations[currentConvIndex].messages = msgs
-        conversations[currentConvIndex].model    = currentModel
-    }
-
-    function _loadConv(index) {
-        currentConvIndex = index
-        var conv = conversations[index]
-        currentModel = conv.model ||
-                       (LemonadeService.models.count > 0 ? LemonadeService.models.get(0).name : "")
-        messages.clear()
-        for (var i = 0; i < conv.messages.length; i++)
-            messages.append(conv.messages[i])
-        Qt.callLater(() => msgView.positionViewAtEnd())
-    }
-
-    function _updateConvTitle() {
-        var conv = conversations[currentConvIndex]
-        if (!conv || conv.title !== "New conversation") return
-        for (var i = 0; i < messages.count; i++) {
-            if (messages.get(i).role === "user") {
-                var t = messages.get(i).content
-                conv.title = t.length > 28 ? t.substring(0, 28) + "…" : t
-                conversations = conversations
-                break
-            }
+        function onServerRunningChanged() {
+            if (LemonadeService.serverRunning) root._maybeAutoLoad()
         }
     }
 
@@ -126,10 +69,9 @@ Item {
     // ── Send message ──────────────────────────────────────────────────────
     function sendMessage() {
         var input = inputArea.text.trim()
-        if (!input || streaming || currentConvIndex < 0) return
+        if (!input || streaming) return
         if (!LemonadeService.serverRunning) return
 
-        // Build user content (plain or vision array)
         var hasFile = attachedFilePath && attachedFileBase64 &&
                       LemonadeService.isVisionModel(currentModel)
         var userContent = hasFile
@@ -139,7 +81,6 @@ Item {
               ])
             : input
 
-        // Collect API messages from current conversation history
         var apiMessages = []
         apiMessages.push({ role: "system", content: "You are a concise assistant. Answer directly and briefly — one to three sentences unless detail is required. Use fenced code blocks (```) for all code, commands, and file paths. Skip preamble, affirmations, and restatements of the question." })
         for (var i = 0; i < messages.count; i++) {
@@ -149,10 +90,8 @@ Item {
             try { parsed = JSON.parse(raw) } catch(e) {}
             apiMessages.push({ role: m.role, content: parsed })
         }
-        // Add new user message
         apiMessages.push({ role: "user", content: hasFile ? JSON.parse(userContent) : input })
 
-        // Append to display
         messages.append({ role: "user", content: input, raw: userContent })
         messages.append({ role: "assistant", content: "", raw: "" })
         var assistantIdx = messages.count - 1
@@ -164,10 +103,8 @@ Item {
         streaming          = true
         _chatAssistantIdx  = assistantIdx
         _chatFullContent   = ""
-        _updateConvTitle()
         Qt.callLater(() => msgView.positionViewAtEnd())
 
-        // Encode single quotes as ' so the JSON is safe inside a single-quoted shell arg
         var bodyJson = JSON.stringify({ model: currentModel, messages: apiMessages, stream: true })
                            .replace(/'/g, "\\u0027")
 
@@ -210,9 +147,9 @@ Item {
                 root.messages.setProperty(root._chatAssistantIdx, "content", "(no response)")
                 root.messages.setProperty(root._chatAssistantIdx, "raw",     "(no response)")
             }
-            root._saveCurrentConv()
             root._chatAssistantIdx = -1
             Qt.callLater(() => msgView.positionViewAtEnd())
+            root.saveSession()
         }
     }
 
@@ -238,6 +175,56 @@ Item {
         base64Proc.running = true
     }
 
+    // ── Session persistence ───────────────────────────────────────────────
+    Process {
+        id: sessionReadProc
+        property string _buf: ""
+        stdout: SplitParser {
+            onRead: (line) => { sessionReadProc._buf += line + "\n" }
+        }
+        onRunningChanged: {
+            if (running) return
+            if (_buf.trim()) {
+                try {
+                    var data = JSON.parse(_buf.trim())
+                    if (data.model) root.currentModel = data.model
+                    if (data.messages) {
+                        for (var i = 0; i < data.messages.length; i++)
+                            root.messages.append(data.messages[i])
+                        Qt.callLater(() => msgView.positionViewAtEnd())
+                    }
+                } catch(e) {}
+            }
+            _buf = ""
+            root._sessionLoaded = true
+            root._maybeAutoLoad()
+        }
+    }
+
+    Process { id: sessionWriteProc }
+
+    function saveSession() {
+        if (streaming) return
+        var data = { model: currentModel, messages: [] }
+        for (var i = 0; i < messages.count; i++) {
+            var m = messages.get(i)
+            data.messages.push({ role: m.role, content: m.content, raw: m.raw || "" })
+        }
+        var json = JSON.stringify(data).replace(/'/g, "\\u0027")
+        sessionWriteProc.running = false
+        sessionWriteProc.command = ["sh", "-c",
+            "mkdir -p ~/.local/share/quickshell && " +
+            "printf '%s' '" + json + "' > " + _sessionPath
+        ]
+        sessionWriteProc.running = true
+    }
+
+    function deleteSession() {
+        sessionWriteProc.running = false
+        sessionWriteProc.command = ["sh", "-c", "rm -f " + _sessionPath]
+        sessionWriteProc.running = true
+    }
+
     // ── Clipboard ─────────────────────────────────────────────────────────
     Process {
         id: clipProc
@@ -254,300 +241,15 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        // Server status banner
+        // Top bar — model selector + server control (matches TranslateView language bar)
         Rectangle {
             Layout.fillWidth: true
-            height: visible ? 36 : 0
-            visible: LemonadeService.statusChecked && !LemonadeService.serverRunning
-            color: Qt.rgba(0.6, 0.1, 0.1, 0.3)
-
-            RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
-                spacing: 8
-
-                Text {
-                    text: "circle"
-                    font.family:    Theme.iconFamily
-                    font.pixelSize: 12
-                    color: Theme.red
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    text: "Lemonade server offline"
-                    font.family:    Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                    color: Theme.fg
-                }
-
-                Rectangle {
-                    width: 52; height: 22
-                    radius: Theme.pillRadius
-                    color: startHov.containsMouse ? Qt.rgba(0.8,0.2,0.2,0.5) : Qt.rgba(0.7,0.15,0.15,0.35)
-                    border.color: Qt.rgba(1,0.3,0.3,0.35)
-                    border.width: 1
-                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: LemonadeService.starting ? "…" : "Start"
-                        font.family:    Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 1
-                        color: Theme.fg
-                    }
-
-                    MouseArea {
-                        id: startHov
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        enabled: !LemonadeService.starting
-                        onClicked: LemonadeService.startServer()
-                    }
-                }
-            }
-        }
-
-        // Server running banner
-        Rectangle {
-            Layout.fillWidth: true
-            height: visible ? 36 : 0
-            visible: LemonadeService.serverRunning
-            color: Qt.rgba(0.1, 0.5, 0.1, 0.3)
-
-            RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
-                spacing: 8
-
-                Text {
-                    text: "circle"
-                    font.family:    Theme.iconFamily
-                    font.pixelSize: 12
-                    color: Theme.green
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    text: "Lemonade server running"
-                    font.family:    Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                    color: Theme.fg
-                }
-
-                Rectangle {
-                    width: 52; height: 22
-                    radius: Theme.pillRadius
-                    color: stopHov.containsMouse ? Qt.rgba(0.1,0.5,0.15,0.4) : Qt.rgba(0.08,0.4,0.12,0.3)
-                    border.color: Theme.green
-                    border.width: 1
-                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: LemonadeService.stopping ? "…" : "Stop"
-                        font.family:    Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 1
-                        color: Theme.fg
-                    }
-
-                    MouseArea {
-                        id: stopHov
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        enabled: !LemonadeService.stopping
-                        onClicked: LemonadeService.stopServer()
-                    }
-                }
-            }
-        }
-
-        // Conversation list
-        Rectangle {
-            Layout.fillWidth: true
-            height: 40
-            color: Qt.rgba(0, 0, 0, 0.1)
-
-            RowLayout {
-                anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
-                spacing: 4
-
-                // New conversation button
-                Rectangle {
-                    width: 28; height: 28
-                    radius: Theme.pillRadius
-                    color: newConvHov.containsMouse ? Theme.bgHover : "transparent"
-                    border.color: Theme.notifBorderMid
-                    border.width: 1
-                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "add"
-                        font.family:    Theme.iconFamily
-                        font.pixelSize: 16
-                        color: newConvHov.containsMouse ? Theme.accent : Theme.fgDim
-                        Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                    }
-
-                    MouseArea {
-                        id: newConvHov
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.newConversation()
-                    }
-                }
-
-                // Conversation pills (horizontal scroll)
-                ListView {
-                    id: convList
-                    Layout.fillWidth: true
-                    height: 28
-                    orientation: ListView.Horizontal
-                    spacing: 4
-                    clip: true
-                    model: root.conversations
-                    currentIndex: root.currentConvIndex
-
-                    delegate: Item {
-                        id: convDelegate
-                        property int convIdx: index
-                        property bool isActive: index === root.currentConvIndex
-                        property bool showConfirm: index === root.deleteConfirmIndex
-
-                        height: 28
-                        width: showConfirm ? confirmRow.implicitWidth + 16
-                                           : Math.min(pillLabel.implicitWidth + 36, 140)
-
-                        Behavior on width { NumberAnimation { duration: Theme.animFast } }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Theme.pillRadius
-                            color: isActive ? Qt.rgba(0.44, 0.39, 0.68, 0.35)
-                                            : pillHov.containsMouse ? Theme.bgHover : Qt.rgba(1,1,1,0.04)
-                            border.color: isActive ? Qt.rgba(0.70, 0.62, 0.86, 0.35) : Theme.notifBorderDim
-                            border.width: 1
-                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                            // Normal pill content
-                            RowLayout {
-                                anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
-                                spacing: 4
-                                visible: !showConfirm
-
-                                Text {
-                                    id: pillLabel
-                                    Layout.fillWidth: true
-                                    text: modelData ? modelData.title : ""
-                                    font.family:    Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 1
-                                    color: isActive ? Theme.fg : Theme.fgDim
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    text: "close"
-                                    font.family:    Theme.iconFamily
-                                    font.pixelSize: 12
-                                    color: delHov.containsMouse ? Theme.red : Theme.fgDim
-                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-
-                                    MouseArea {
-                                        id: delHov
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.deleteConfirmIndex = convIdx
-                                    }
-                                }
-                            }
-
-                            // Delete confirmation
-                            RowLayout {
-                                id: confirmRow
-                                anchors.centerIn: parent
-                                spacing: 4
-                                visible: showConfirm
-
-                                Text {
-                                    text: "Delete?"
-                                    font.family:    Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 2
-                                    color: Theme.fgDim
-                                }
-
-                                Rectangle {
-                                    width: 30; height: 18
-                                    radius: 4
-                                    color: yesHov.containsMouse ? Qt.rgba(0.8,0.2,0.2,0.6) : Qt.rgba(0.6,0.1,0.1,0.4)
-                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "Yes"
-                                        font.family:    Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize - 2
-                                        color: Theme.fg
-                                    }
-                                    MouseArea {
-                                        id: yesHov
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.deleteConv(convIdx)
-                                    }
-                                }
-
-                                Rectangle {
-                                    width: 26; height: 18
-                                    radius: 4
-                                    color: noHov.containsMouse ? Theme.bgHover : Qt.rgba(1,1,1,0.06)
-                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "No"
-                                        font.family:    Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize - 2
-                                        color: Theme.fgDim
-                                    }
-                                    MouseArea {
-                                        id: noHov
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.deleteConfirmIndex = -1
-                                    }
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            id: pillHov
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            enabled: !showConfirm
-                            onClicked: root.switchConv(convIdx)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Divider
-        Rectangle { Layout.fillWidth: true; height: 1; color: Theme.notifBorderDim }
-
-        // Model selector row
-        Rectangle {
-            id: modelRow
-            Layout.fillWidth: true
-            height: 38
-            color: Qt.rgba(0, 0, 0, 0.08)
+            height: 44
+            color: Qt.rgba(0, 0, 0, 0.15)
             z: modelDropdown.visible ? 2 : 0
 
             RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
+                anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
                 spacing: 8
 
                 Text {
@@ -557,13 +259,16 @@ Item {
                     color: Theme.fgDim
                 }
 
-                // Custom inline dropdown button
+                // Model dropdown button
                 Rectangle {
                     id: modelBtn
                     Layout.fillWidth: true
                     height: 26
                     radius: Theme.pillRadius
-                    color: modelBtnArea.containsMouse ? Theme.bgHover : Qt.rgba(1,1,1,0.04)
+                    property bool locked: root.messages.count > 0
+                    opacity: locked ? 0.5 : 1.0
+                    Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
+                    color: modelBtnArea.containsMouse && !locked ? Theme.bgHover : Qt.rgba(1, 1, 1, 0.04)
                     border.color: modelDropdown.visible ? Theme.notifBorderBase : Theme.notifBorderMid
                     border.width: 1
                     Behavior on color { ColorAnimation { duration: Theme.animFast } }
@@ -571,6 +276,13 @@ Item {
                     RowLayout {
                         anchors { fill: parent; leftMargin: 8; rightMargin: 6 }
                         spacing: 4
+                        Text {
+                            text: "●"
+                            font.pixelSize: 8
+                            color: root.currentModel === LemonadeService.loadedModel ? Theme.green : Theme.fgDim
+                            verticalAlignment: Text.AlignVCenter
+                            Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                        }
                         Text {
                             Layout.fillWidth: true
                             text: root.currentModel !== "" ? root.currentModel
@@ -582,7 +294,7 @@ Item {
                             verticalAlignment: Text.AlignVCenter
                         }
                         Text {
-                            text: modelDropdown.visible ? "expand_less" : "expand_more"
+                            text: modelBtn.locked ? "lock" : modelDropdown.visible ? "expand_less" : "expand_more"
                             font.family:    Theme.iconFamily
                             font.pixelSize: 14
                             color: Theme.fgDim
@@ -593,14 +305,14 @@ Item {
                         id: modelBtnArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        enabled: LemonadeService.models.count > 0
+                        cursorShape: modelBtn.locked ? Qt.ArrowCursor : Qt.PointingHandCursor
+                        enabled: LemonadeService.models.count > 0 && !modelBtn.locked
                         onClicked: {
                             if (modelDropdown.visible) {
                                 modelDropdown.visible = false
                             } else {
                                 var p = modelBtn.mapToItem(root, 0, modelBtn.height + 2)
-                                modelDropdown.x = p.x + 12
+                                modelDropdown.x = p.x + 10
                                 modelDropdown.y = p.y
                                 modelDropdown.width = modelBtn.width
                                 modelDropdown.visible = true
@@ -622,6 +334,46 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: LemonadeService.refreshStatus()
+                    }
+                }
+
+                // Server start / stop pill
+                Rectangle {
+                    height: 26
+                    width: serverLabel.implicitWidth + 20
+                    radius: Theme.pillRadius
+                    color: {
+                        if (LemonadeService.serverRunning)
+                            return serverHov.containsMouse ? Qt.rgba(0.1, 0.5, 0.15, 0.4)
+                                                          : Qt.rgba(0.08, 0.4, 0.12, 0.3)
+                        return serverHov.containsMouse ? Qt.rgba(0.8, 0.2, 0.2, 0.5)
+                                                      : Qt.rgba(0.7, 0.15, 0.15, 0.35)
+                    }
+                    border.color: LemonadeService.serverRunning
+                                  ? Theme.green : Qt.rgba(1, 0.3, 0.3, 0.35)
+                    border.width: 1
+                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                    Text {
+                        id: serverLabel
+                        anchors.centerIn: parent
+                        text: LemonadeService.starting ? "…"
+                            : LemonadeService.stopping ? "…"
+                            : LemonadeService.serverRunning ? "Stop" : "Start"
+                        font.family:    Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 1
+                        color: Theme.fg
+                    }
+
+                    MouseArea {
+                        id: serverHov
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        enabled: !LemonadeService.starting && !LemonadeService.stopping
+                        onClicked: LemonadeService.serverRunning
+                                   ? LemonadeService.stopServer()
+                                   : LemonadeService.startServer()
                     }
                 }
             }
@@ -647,7 +399,6 @@ Item {
                 topMargin: 12
                 bottomMargin: 12
 
-                // Empty state
                 Text {
                     anchors.centerIn: parent
                     visible: root.messages.count === 0
@@ -757,7 +508,6 @@ Item {
                                             ? codeBox.height
                                             : segEdit.contentHeight
 
-                                    // Plain text / markdown segment — selectable
                                     TextEdit {
                                         id: segEdit
                                         visible: seg.type === "text"
@@ -775,7 +525,6 @@ Item {
                                         selectionColor:    Theme.accent
                                     }
 
-                                    // Code block — monospace, selectable, copy button
                                     Rectangle {
                                         id: codeBox
                                         visible: seg.type === "code"
@@ -872,12 +621,11 @@ Item {
                     color: Theme.fgDim
                 }
 
-                // File path input
                 Rectangle {
                     Layout.fillWidth: true
                     height: 24
                     radius: Theme.pillRadius
-                    color: Qt.rgba(1,1,1,0.04)
+                    color: Qt.rgba(1, 1, 1, 0.04)
                     border.color: filePathInput.activeFocus ? Theme.notifBorderBase : Theme.notifBorderDim
                     border.width: 1
                     visible: showFileInput && attachedFilePath === ""
@@ -903,7 +651,6 @@ Item {
                     }
                 }
 
-                // Attached filename pill
                 Rectangle {
                     visible: attachedFilePath !== ""
                     Layout.fillWidth: true
@@ -924,7 +671,6 @@ Item {
                     }
                 }
 
-                // Clear attachment
                 Text {
                     text: "close"
                     font.family:    Theme.iconFamily
@@ -952,14 +698,11 @@ Item {
         Rectangle {
             id: inputRowBar
             Layout.fillWidth: true
-            // Grow with content up to a cap, then the Flickable scrolls.
-            // Derived from contentHeight (not inputPill.height) to avoid a binding loop.
             property real pillHeight: Math.min(Math.max(inputArea.contentHeight + 14, 36), 220)
             Layout.preferredHeight: pillHeight + 14
             color: "transparent"
 
             RowLayout {
-                id: inputRowLayout
                 anchors { left: parent.left; right: parent.right;
                           verticalCenter: parent.verticalCenter; margins: 10 }
                 spacing: 8
@@ -1041,13 +784,14 @@ Item {
                     }
                 }
 
-                // Send button
+                // Send / Stop button
                 Rectangle {
                     width: 36; height: 36
                     radius: Theme.pillRadius
-                    color: root.streaming
-                           ? Qt.rgba(0.44, 0.39, 0.68, 0.2)
-                           : sendBtnHov.containsMouse ? Theme.accentDim : Theme.accent
+                    property bool canSend: LemonadeService.serverRunning && !root.streaming
+                    color: root.streaming        ? Qt.rgba(0.44, 0.39, 0.68, 0.2)
+                         : !canSend             ? Qt.rgba(0.44, 0.39, 0.68, 0.15)
+                         : sendBtnHov.containsMouse ? Theme.accentDim : Theme.accent
                     Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
                     Text {
@@ -1055,18 +799,49 @@ Item {
                         text: root.streaming ? "stop" : "send"
                         font.family:    Theme.iconFamily
                         font.pixelSize: 18
-                        color: root.streaming ? Theme.fgDim : Theme.bgSolid
+                        color: (root.streaming || !LemonadeService.serverRunning) ? Theme.fgDim : Theme.bgSolid
+                        Behavior on color { ColorAnimation { duration: Theme.animFast } }
                     }
 
                     MouseArea {
                         id: sendBtnHov
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: LemonadeService.serverRunning ? Qt.PointingHandCursor : Qt.ArrowCursor
                         enabled: LemonadeService.serverRunning
                         onClicked: {
                             if (root.streaming) chatProc.running = false
                             else root.sendMessage()
+                        }
+                    }
+                }
+
+                // Clear button
+                Rectangle {
+                    width: 36; height: 36
+                    radius: Theme.pillRadius
+                    color: clearHov.containsMouse ? Theme.bgHover : "transparent"
+                    border.color: Theme.notifBorderMid
+                    border.width: 1
+                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "delete_sweep"
+                        font.family:    Theme.iconFamily
+                        font.pixelSize: 18
+                        color: clearHov.containsMouse ? Theme.red : Theme.fgDim
+                        Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                    }
+
+                    MouseArea {
+                        id: clearHov
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.messages.clear()
+                            root.deleteSession()
                         }
                     }
                 }
@@ -1075,7 +850,6 @@ Item {
     }
 
     // ── Model dropdown overlay ────────────────────────────────────────────
-    // Backdrop: closes dropdown when clicking outside
     MouseArea {
         anchors.fill: parent
         visible: modelDropdown.visible
@@ -1104,14 +878,24 @@ Item {
                 height: 28
                 color: mItemHov.containsMouse ? Theme.notifHoverBg : "transparent"
                 radius: 4
-                Text {
-                    anchors { fill: parent; leftMargin: 10 }
-                    text: model.name || ""
-                    color: root.currentModel === (model.name || "") ? Theme.accent : Theme.fg
-                    font.family:    Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
+                RowLayout {
+                    anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
+                    spacing: 6
+                    Text {
+                        text: "●"
+                        font.pixelSize: 8
+                        color: (model.name || "") === LemonadeService.loadedModel ? Theme.green : Theme.fgDim
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: model.name || ""
+                        color: root.currentModel === (model.name || "") ? Theme.accent : Theme.fg
+                        font.family:    Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 1
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
                 }
                 MouseArea {
                     id: mItemHov

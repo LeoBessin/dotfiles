@@ -13,6 +13,8 @@ Item {
     property bool starting: false
     property bool stopping: false
     property ListModel models: ListModel {}
+    property string loadedModel: ""
+    property bool loadingModel: false
 
     // ── Public API ────────────────────────────────────────────────────────
 
@@ -39,29 +41,58 @@ Item {
         stopProc.running = true
     }
 
+    function loadModel(name) {
+        root.loadingModel = true
+        loadProc.command = ["lemonade", "load", name]
+        loadProc.running = false
+        loadProc.running = true
+    }
+
     function isVisionModel(name) {
         var n = (name || "").toLowerCase()
         return /vision|llava|gemma3|minicpm.v|qwen.*vl|pixtral|phi.3.vision/.test(n)
+    }
+
+    // ── Model load ────────────────────────────────────────────────────────
+
+    Process {
+        id: loadProc
+        onExited: (code) => {
+            root.loadingModel = false
+            if (code === 0) root.refreshStatus()
+        }
     }
 
     // ── Status check ──────────────────────────────────────────────────────
 
     Process {
         id: statusProc
+        property bool _pastSeparator: false
+        property bool _foundModel: false
         command: ["lemonade", "status"]
         stdout: SplitParser {
             onRead: (line) => {
+                var t = line.trim()
                 if (line.includes("Server is running")) root.serverRunning = true
+                if (t === "No models loaded.") { root.loadedModel = ""; statusProc._foundModel = true; return }
+                // Properties table separator is ~50 dashes; model table separator is ~100 — only the longer one triggers
+                if (/^-{60,}$/.test(t)) { statusProc._pastSeparator = true; return }
+                if (statusProc._pastSeparator && t !== "") {
+                    root.loadedModel = t.split(/\s+/)[0]
+                    statusProc._foundModel = true
+                    statusProc._pastSeparator = false
+                }
             }
         }
         onRunningChanged: {
-            if (running) return
+            if (running) { _pastSeparator = false; _foundModel = false; return }
+            if (!_foundModel) root.loadedModel = ""
             root.statusChecked = true
             root.starting      = false
             if (root.serverRunning) root.refreshModels()
         }
         onExited: (code) => {
-            if (code !== 0) root.serverRunning = false
+            if (code !== 0) { root.serverRunning = false; root.loadedModel = "" }
         }
     }
 
@@ -107,8 +138,10 @@ Item {
         command: ["sudo", "systemctl", "stop", "lemond"]
         onExited: {
             root.serverRunning = false
+            root.loadedModel   = ""
             root.models.clear()
             root.stopping = false
         }
     }
+
 }
