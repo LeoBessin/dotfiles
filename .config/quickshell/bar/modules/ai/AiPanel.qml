@@ -99,7 +99,9 @@ PanelWindow {
 
                     // Icon
                     Text {
-                        text: AiPanelState.activeTab === 0 ? "smart_toy" : "translate"
+                        text: AiPanelState.activeTab === 0 ? "smart_toy"
+                            : AiPanelState.activeTab === 1 ? "translate"
+                            : "menu_book"
                         font.family:    Theme.iconFamily
                         font.pixelSize: 20
                         color: Theme.accent
@@ -108,7 +110,9 @@ PanelWindow {
                     // Title
                     Text {
                         Layout.fillWidth: true
-                        text: AiPanelState.activeTab === 0 ? "AI Chat" : "Translate"
+                        text: AiPanelState.activeTab === 0 ? "AI Chat"
+                            : AiPanelState.activeTab === 1 ? "Translate"
+                            : "Dictionary"
                         font.family:    Theme.fontFamily
                         font.pixelSize: Theme.fontSize + 1
                         font.weight:    Font.DemiBold
@@ -121,8 +125,9 @@ PanelWindow {
 
                         Repeater {
                             model: [
-                                { label: "AI Chat",   icon: "smart_toy",  tab: 0 },
-                                { label: "Translate", icon: "translate",  tab: 1 }
+                                { label: "AI Chat",    icon: "smart_toy",  tab: 0 },
+                                { label: "Translate",  icon: "translate",  tab: 1 },
+                                { label: "Dictionary", icon: "menu_book",  tab: 2 }
                             ]
                             delegate: Rectangle {
                                 property bool isTab: AiPanelState.activeTab === modelData.tab
@@ -183,6 +188,12 @@ PanelWindow {
                     anchors.fill: parent
                     visible: AiPanelState.activeTab === 1
                     enabled: AiPanelState.activeTab === 1
+                }
+
+                DictionaryView {
+                    anchors.fill: parent
+                    visible: AiPanelState.activeTab === 2
+                    enabled: AiPanelState.activeTab === 2
                 }
             }
         }
