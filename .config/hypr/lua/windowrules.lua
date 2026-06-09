@@ -131,7 +131,8 @@ for _, ns in ipairs(blur_namespaces) do
     hl.layer_rule({ match = { namespace = ns }, blur = true, ignore_alpha = 0 })
 end
 
-hl.layer_rule({ match = { namespace = "rofi" }, animation = "slide bottom 6 winIn" })
+hl.layer_rule({ match = { namespace = "rofi" },              animation = "slide bottom 6 winIn" })
+hl.layer_rule({ match = { namespace = "quickshell-launcher" }, animation = "slide bottom 10 wind" })
 
 -- Waybar: explicitly no blur
 hl.layer_rule({ match = { namespace = "waybar" }, blur = false })

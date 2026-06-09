@@ -68,6 +68,7 @@ hl.bind(M .. " + C",          hl.dsp.exec_cmd(editor),                          
 hl.bind(M .. " + B",          hl.dsp.exec_cmd(browser),                                  { description = "web browser" })
 hl.bind("CTRL + SHIFT + ESCAPE", hl.dsp.exec_cmd("kitty btop"),                          { description = "system monitor" })
 hl.bind(MS .. " + code:201", hl.dsp.exec_cmd("kitty --class ai-picker -e ai-cli-picker"), { description = "AI CLI launcher" })
+hl.bind(M  .. " + A",       hl.dsp.exec_cmd("kitty --class ai-picker -e ai-cli-picker"), { description = "AI CLI launcher" })
 
 -- QuickShell pickers
 hl.bind("ALT + SPACE",    hl.dsp.exec_cmd("qs -p ~/.config/quickshell/bar ipc call launcher open app"),    { description = "application finder" })
