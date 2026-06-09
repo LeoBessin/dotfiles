@@ -99,7 +99,7 @@ PanelWindow {
 
                     // Icon
                     Text {
-                        text: AiPanelState.activeTab === 0 ? "smart_toy"
+                        text: AiPanelState.activeTab === 0 ? "neurology"
                             : AiPanelState.activeTab === 1 ? "translate"
                             : "menu_book"
                         font.family:    Theme.iconFamily
@@ -125,7 +125,7 @@ PanelWindow {
 
                         Repeater {
                             model: [
-                                { label: "AI Chat",    icon: "smart_toy",  tab: 0 },
+                                { label: "AI Chat",    icon: "neurology",  tab: 0 },
                                 { label: "Translate",  icon: "translate",  tab: 1 },
                                 { label: "Dictionary", icon: "menu_book",  tab: 2 }
                             ]

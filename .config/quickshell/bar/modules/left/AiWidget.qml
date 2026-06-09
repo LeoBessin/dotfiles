@@ -13,7 +13,7 @@ BarWidget {
         spacing: 3
 
         Text {
-            text: "smart_toy"
+            text: "neurology"
             font.family:    Theme.iconFamily
             font.pixelSize: Theme.iconSize
             color: root.hovered
