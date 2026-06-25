@@ -123,7 +123,7 @@ BarWidget {
             spacing: 3
 
             Text {
-                text:  "\ue322"   // ram icon placeholder — same chip glyph works
+                text:  "\uf7a3"   // Material Symbols: memory_alt (RAM stick)
                 font.family:  Theme.iconFamily
                 font.pixelSize: Theme.iconSize
                 color: root.hovered ? Theme.accent : Theme.fgDim

@@ -56,7 +56,16 @@ RowLayout {
                 Component.onCompleted: backingWin = _backingWindow
 
                 onVisibleChanged: {
-                    if (!visible) menuStack = []
+                    if (visible) {
+                        // Re-assign to trigger AboutToShow over DBus so the tray
+                        // app (e.g. nm-applet) repopulates its menu fresh.
+                        var m = trayItem.item.menu
+                        opener.menu = null
+                        opener.menu = m
+                    } else {
+                        menuStack = []
+                        subOpener.menu = null
+                    }
                 }
 
                 Connections {
