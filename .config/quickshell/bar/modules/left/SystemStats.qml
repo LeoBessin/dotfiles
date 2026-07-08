@@ -13,6 +13,7 @@ BarWidget {
     property real cpuPercent: 0
     property real ramUsedGb:  0
     property real ramTotalGb: 0
+    property bool npuActive:  false
 
     // Raw /proc/stat values from previous poll for delta calculation
     property var  _prevStat: null
@@ -23,7 +24,7 @@ BarWidget {
         running:    true
         repeat:     true
         triggeredOnStart: true
-        onTriggered: { cpuProc.running = true; memProc.running = true }
+        onTriggered: { cpuProc.running = true; memProc.running = true; npuProc.running = true }
     }
 
     // ── CPU — read /proc/stat ─────────────────────────────────────────────
@@ -73,6 +74,16 @@ BarWidget {
                 if (m[1] === "MemTotal")     root.ramTotalGb = kb / 1048576
                 if (m[1] === "MemAvailable") root.ramUsedGb  = root.ramTotalGb - (kb / 1048576)
             }
+        }
+    }
+
+    // ── NPU — read power state ────────────────────────────────────────────
+    Process {
+        id: npuProc
+        command: ["bash", "-c", "cat /sys/class/accel/accel0/device/power_state"]
+
+        stdout: SplitParser {
+            onRead: (line) => { root.npuActive = line.trim() === "D0" }
         }
     }
 
@@ -139,6 +150,22 @@ BarWidget {
                      : Theme.fg
                 Behavior on color { ColorAnimation { duration: Theme.animFast } }
             }
+        }
+
+        // Divider
+        Rectangle {
+            width:  1
+            height: 14
+            color:  Qt.rgba(1, 1, 1, 0.12)
+        }
+
+        // NPU \u2014 icon color shows D0 (active) vs D3 (idle)
+        Text {
+            text:  "\uf39c"   // Material Symbols: graph_5
+            font.family:  Theme.iconFamily
+            font.pixelSize: Theme.iconSize
+            color: root.npuActive ? Theme.accent : Theme.fgDim
+            Behavior on color { ColorAnimation { duration: Theme.animFast } }
         }
     }
 }
