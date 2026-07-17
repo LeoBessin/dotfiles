@@ -79,4 +79,7 @@ QtObject {
 
     // ── AI panel ──────────────────────────────────────────────────────────
     readonly property int aiPanelWidth: 420
+
+    // ── TOTP vault panel ────────────────────────────────────────────────────
+    readonly property int totpPanelWidth: 380
 }

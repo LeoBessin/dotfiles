@@ -10,6 +10,7 @@ import "modules/notifications"
 import "modules/launcher"
 import "modules/workspaces"
 import "modules/ai"
+import "modules/totp"
 
 ShellRoot {
     FontLoader {
@@ -44,6 +45,19 @@ ShellRoot {
     }
 
     IpcHandler {
+        target: "totp"
+        function toggle(monitorName: string) {
+            for (var i = 0; i < Quickshell.screens.length; i++) {
+                if (Quickshell.screens[i].name === monitorName) {
+                    TotpVaultState.togglePanel(Quickshell.screens[i])
+                    return
+                }
+            }
+            TotpVaultState.togglePanel(Quickshell.screens[0])
+        }
+    }
+
+    IpcHandler {
         target: "workspaces"
         function open() {
             var focusedName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
@@ -65,6 +79,11 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         AiPanel {}
+    }
+
+    Variants {
+        model: Quickshell.screens
+        TotpPanel {}
     }
 
     Variants {

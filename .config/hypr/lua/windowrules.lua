@@ -125,6 +125,7 @@ local blur_namespaces = {
     "quickshell-launcher",
     "quickshell-workspaces",
     "quickshell-ai-panel",
+    "quickshell-totp-panel",
 }
 
 for _, ns in ipairs(blur_namespaces) do

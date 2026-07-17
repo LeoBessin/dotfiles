@@ -54,6 +54,7 @@ PanelWindow {
         spacing: Theme.widgetSpacing
 
         AiWidget  { barScreen: root.screen }
+        TotpWidget { barScreen: root.screen }
         SystemStats {}
         IdleClock { barWindow: root }
     }

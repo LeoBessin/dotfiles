@@ -1,3 +1,4 @@
 SystemStats 1.0 SystemStats.qml
 IdleClock 1.0 IdleClock.qml
 AiWidget 1.0 AiWidget.qml
+TotpWidget 1.0 TotpWidget.qml
