@@ -55,6 +55,7 @@ PanelWindow {
 
         AiWidget  { barScreen: root.screen }
         TotpWidget { barScreen: root.screen }
+        DockerWidget {}
         SystemStats {}
         IdleClock { barWindow: root }
     }

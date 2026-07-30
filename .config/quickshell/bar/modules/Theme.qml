@@ -82,4 +82,7 @@ QtObject {
 
     // ── TOTP vault panel ────────────────────────────────────────────────────
     readonly property int totpPanelWidth: 380
+
+    // ── Docker widget ────────────────────────────────────────────────────
+    readonly property int dockerPollMs: 3000
 }
