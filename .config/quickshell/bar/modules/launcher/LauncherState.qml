@@ -91,24 +91,19 @@ Item {
     }
 
     // ── Window loader ─────────────────────────────────────────────────────
-    Process {
-        id: windowLoader
-        command: ["bash", "-c",
-            "hyprctl clients -j | jq -r '.[] | select(.title != \"\") | \"\\(.title)\\t\\(.class)\\t\\(.address)\"'"
-        ]
-        stdout: SplitParser {
-            onRead: (line) => {
-                var parts = line.split("\t")
-                if (parts.length >= 3) {
-                    root.windowModel.append({
-                        title:   parts[0],
-                        cls:     parts[1],
-                        address: parts[2]
-                    })
-                }
-            }
-        }
-        onExited: { root.windowLoaded = true }
+    // Windows come straight from wlr-foreign-toplevel-management, so this is
+    // synchronous and compositor agnostic — no subprocess, no window addresses.
+    //
+    // The Toplevel objects themselves are kept in a plain JS array rather than in
+    // the ListModel: a ListModel role cannot reliably hold a QObject, so rows
+    // carry an index into _windowRefs instead.
+    property var _windowRefs: []
+
+    // Focus a window listed by _loadWindows. Ignored if the row is stale, e.g. the
+    // window closed while the picker was open.
+    function activateWindow(topIndex) {
+        if (topIndex < 0 || topIndex >= _windowRefs.length) return
+        CompositorService.focusToplevel(_windowRefs[topIndex])
     }
 
     // ── File loader ───────────────────────────────────────────────────────
@@ -236,8 +231,20 @@ Item {
     function _loadWindows() {
         windowLoaded = false
         windowModel.clear()
-        windowLoader.running = false
-        windowLoader.running = true
+        var refs = []
+        var toplevels = CompositorService.toplevels
+        for (var i = 0; i < toplevels.length; i++) {
+            var toplevel = toplevels[i]
+            if (!toplevel.title) continue
+            windowModel.append({
+                title:    toplevel.title,
+                cls:      toplevel.appId || "",
+                topIndex: refs.length
+            })
+            refs.push(toplevel)
+        }
+        _windowRefs = refs
+        windowLoaded = true
     }
 
     function _loadFiles(path) {

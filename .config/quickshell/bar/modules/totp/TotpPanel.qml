@@ -27,6 +27,10 @@ PanelWindow {
     color: "transparent"
     surfaceFormat.opaque: false
 
+    // Blur only the card, not the fullscreen surface — see the background-effect
+    // note in contrib/niri/config.kdl.
+    BackgroundEffect.blurRegion: Region { item: panel; radius: Theme.radius }
+
     Component.onCompleted: exclusionMode = ExclusionMode.Ignore
 
     visible: false

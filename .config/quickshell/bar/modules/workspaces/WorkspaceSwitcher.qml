@@ -2,9 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Wayland._Screencopy
+import Quickshell.Widgets
 import ".."
 
 PanelWindow {
@@ -35,7 +35,7 @@ PanelWindow {
             root.wallpaperPath = ""
             wallpaperReader.running = false
             wallpaperReader.running = true
-            _allToplevelMaps = _buildAllToplevelMaps()
+            _toplevelByTitle = _buildToplevelByTitle()
             hideTimer.stop()
             focusTimer.restart()
         } else {
@@ -73,37 +73,39 @@ PanelWindow {
     readonly property real thumbCardH: thumbPrevH + 26
     readonly property real thumbCardW: thumbPrevW
 
-    readonly property int selectedWsId: {
+    // Opaque workspace key, not a number — see WorkspaceSwitcherState.workspaceIds.
+    readonly property string selectedWsId: {
         var ids = WorkspaceSwitcherState.workspaceIds
-        if (!ids || ids.length <= WorkspaceSwitcherState.selectedIndex) return -1
+        if (!ids || ids.length <= WorkspaceSwitcherState.selectedIndex) return ""
         return ids[WorkspaceSwitcherState.selectedIndex]
     }
 
-    // ── Toplevel maps for ALL workspaces: {wsId: {title: HyprlandToplevel}} ─
-    property var _allToplevelMaps: ({})
+    // ── title → Toplevel, for live window previews ─────────────────────────
+    // The workspace snapshot identifies windows by title (no cross-compositor
+    // protocol links a toplevel handle to a workspace), so previews are matched
+    // back to their Toplevel the same way.
+    property var _toplevelByTitle: ({})
 
     Connections {
         target: WorkspaceSwitcherState
         function onLoadedChanged() {
             if (WorkspaceSwitcherState.loaded)
-                root._allToplevelMaps = root._buildAllToplevelMaps()
+                root._toplevelByTitle = root._buildToplevelByTitle()
         }
     }
 
-    function _buildAllToplevelMaps() {
-        var result = {}
-        var wss = Hyprland.workspaces.values
-        for (var i = 0; i < wss.length; i++) {
-            var wsId = wss[i].id
-            var tops = wss[i].toplevels.values
-            var map  = {}
-            for (var j = 0; j < tops.length; j++) {
-                var t = tops[j]
-                if (t.title) map[t.title] = t
-            }
-            result[wsId] = map
+    function _buildToplevelByTitle() {
+        var map = {}
+        var toplevels = CompositorService.toplevels
+        for (var i = 0; i < toplevels.length; i++) {
+            var toplevel = toplevels[i]
+            if (toplevel.title) map[toplevel.title] = toplevel
         }
-        return result
+        return map
+    }
+
+    function _toplevelFor(title) {
+        return root._toplevelByTitle[title] ?? null
     }
 
     // ── Backdrop ───────────────────────────────────────────────────────────
@@ -200,8 +202,8 @@ PanelWindow {
                         width:  _scaledW
                         height: _scaledH + _titleH
 
-                        property var  _toplevel:   (root._allToplevelMaps[root.selectedWsId] ?? {})[modelData.title] ?? null
-                        property bool _hasContent: _scv.hasContent
+                        property var  _toplevel:   root._toplevelFor(modelData.title)
+                        property bool _hasContent: _scvLoader.item ? _scvLoader.item.hasContent : false
 
                         // Title bar above the window content
                         Rectangle {
@@ -255,12 +257,17 @@ PanelWindow {
                             }
                         }
 
-                        // Window content area (below title bar)
-                        ScreencopyView {
-                            id: _scv
+                        // Window content area (below title bar). Live capture needs
+                        // hyprland-toplevel-export-v1, which niri lacks — there the
+                        // placeholder below carries the app icon instead.
+                        Loader {
+                            id: _scvLoader
                             anchors { top: titleBar.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
-                            captureSource: winItem._toplevel ? winItem._toplevel.wayland : null
-                            live: true
+                            active: CompositorService.canCaptureToplevels
+                            sourceComponent: ScreencopyView {
+                                captureSource: winItem._toplevel
+                                live: true
+                            }
                         }
 
                         Rectangle {
@@ -268,6 +275,13 @@ PanelWindow {
                             visible: !winItem._hasContent
                             radius:  6
                             color:   Qt.rgba(0.20, 0.16, 0.32, 0.70)
+
+                            IconImage {
+                                anchors.centerIn: parent
+                                implicitSize: Math.max(24, Math.min(96, Math.min(parent.width, parent.height) * 0.4))
+                                source:  Quickshell.iconPath((winItem.modelData.cls ?? "").toLowerCase(), true)
+                                visible: source !== ""
+                            }
                         }
                     }
                 }
@@ -289,9 +303,8 @@ PanelWindow {
                 Text {
                     anchors.centerIn: parent
                     text: {
-                        var ids = WorkspaceSwitcherState.workspaceIds
-                        var sel = WorkspaceSwitcherState.selectedIndex
-                        return (ids && sel < ids.length) ? "Workspace " + ids[sel] : ""
+                        var name = WorkspaceSwitcherState.nameByWs[root.selectedWsId]
+                        return name ? "Workspace " + name : ""
                     }
                     font.family:    Theme.monoFamily
                     font.pixelSize: Theme.fontSize
@@ -367,15 +380,18 @@ PanelWindow {
                                     width:  Math.max(3, Math.round(modelData.w * thumbPrevArea.width  / thumbCard._mon.w))
                                     height: Math.max(3, Math.round(modelData.h * thumbPrevArea.height / thumbCard._mon.h))
 
-                                    property var  _toplevel:   (root._allToplevelMaps[thumbCard.modelData] ?? {})[modelData.title] ?? null
-                                    property bool _hasContent: _tscv.hasContent
+                                    property var  _toplevel:   root._toplevelFor(modelData.title)
+                                    property bool _hasContent: _tscvLoader.item ? _tscvLoader.item.hasContent : false
 
-                                    ScreencopyView {
-                                        id: _tscv
+                                    Loader {
+                                        id: _tscvLoader
                                         anchors.fill: parent
-                                        captureSource: thumbWin._toplevel ? thumbWin._toplevel.wayland : null
-                                        live: true
-                                        constraintSize: Qt.size(thumbWin.width * 2, thumbWin.height * 2)
+                                        active: CompositorService.canCaptureToplevels
+                                        sourceComponent: ScreencopyView {
+                                            captureSource: thumbWin._toplevel
+                                            live: true
+                                            constraintSize: Qt.size(thumbWin.width * 2, thumbWin.height * 2)
+                                        }
                                     }
 
                                     Rectangle {
@@ -383,6 +399,13 @@ PanelWindow {
                                         visible:      !thumbWin._hasContent
                                         radius:       2
                                         color:        Qt.rgba(0.28, 0.24, 0.42, 0.80)
+
+                                        IconImage {
+                                            anchors.centerIn: parent
+                                            implicitSize: Math.max(8, Math.min(28, Math.min(parent.width, parent.height) * 0.6))
+                                            source:  Quickshell.iconPath((thumbWin.modelData.cls ?? "").toLowerCase(), true)
+                                            visible: source !== ""
+                                        }
                                     }
                                 }
                             }
@@ -395,7 +418,7 @@ PanelWindow {
                                 horizontalCenter: parent.horizontalCenter
                                 bottomMargin:     4
                             }
-                            text:           thumbCard.modelData.toString()
+                            text:           WorkspaceSwitcherState.nameByWs[thumbCard.modelData] ?? ""
                             font.family:    Theme.monoFamily
                             font.pixelSize: Theme.fontSize - 1
                             font.weight:    thumbCard.isSelected ? Font.Bold : Font.Normal

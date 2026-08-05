@@ -1,0 +1,26 @@
+#!/bin/sh
+# dpms on|off — turn the monitors off/on under either niri or Hyprland.
+#
+# hypridle.conf is shared between both sessions, so the listener calls this
+# instead of hardcoding `hyprctl dispatch dpms`.
+
+case "$1" in
+off)
+	if [ -n "$NIRI_SOCKET" ]; then
+		exec niri msg action power-off-monitors
+	else
+		exec hyprctl dispatch dpms off
+	fi
+	;;
+on)
+	if [ -n "$NIRI_SOCKET" ]; then
+		exec niri msg action power-on-monitors
+	else
+		exec hyprctl dispatch dpms on
+	fi
+	;;
+*)
+	echo "usage: dpms on|off" >&2
+	exit 2
+	;;
+esac

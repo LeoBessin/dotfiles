@@ -1,8 +1,10 @@
 // center/ActiveWindow.qml — focused window title on this monitor
+//
+// Backed by wlr-foreign-toplevel-management through CompositorService, so no
+// compositor-specific window or workspace walking is needed.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Hyprland
 import ".."
 
 Item {
@@ -10,24 +12,13 @@ Item {
 
     property var barScreen: null
 
-    property HyprlandMonitor monitor: {
-        for (var i = 0; i < Hyprland.monitors.values.length; i++) {
-            var m = Hyprland.monitors.values[i]
-            if (barScreen && m.name === barScreen.name)
-                return m
-        }
-        return Hyprland.focusedMonitor
-    }
+    // Null while the focus is on another monitor, so each bar only ever shows
+    // the title of a window on its own screen.
+    readonly property var focusedToplevel: CompositorService.activeToplevelOnScreen(barScreen)
 
     property string windowTitle: {
-        var ws = monitor ? monitor.activeWorkspace : null
-        if (!ws) return ""
-        var toplevels = ws.toplevels.values
-        // prefer the activated one
-        for (var i = 0; i < toplevels.length; i++) {
-            if (toplevels[i].activated)
-                return toplevels[i].title || ""
-        }
+        if (focusedToplevel && focusedToplevel.title)
+            return focusedToplevel.title
         // fall back to last remembered title
         return root._lastTitle
     }

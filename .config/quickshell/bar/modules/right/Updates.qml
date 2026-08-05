@@ -80,11 +80,14 @@ BarWidget {
                 height: 13
                 anchors.centerIn: parent
 
+                // Badge glyphs must stay within Material Symbols. A Nerd-Font-only
+                // codepoint here pushes this Text onto the Nerd Font fallback, where
+                // U+E876 is "dev-putty" instead of "done".
                 Text {
                     id: badgeLabel
                     anchors.centerIn: parent
                     text: UpdateService.checking
-                        ? "󰑓"
+                        ? ""
                         : (UpdateService.totalCount > 0 ? UpdateService.totalCount : "")
                     font.family: (UpdateService.checking || UpdateService.totalCount === 0)
                         ? Theme.iconFamily : Theme.fontFamily

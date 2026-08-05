@@ -175,6 +175,7 @@ D-Bus → NotificationServer.onNotification
 4. **Singletons stay in `modules/`.** A singleton needed by files in multiple directories must be registered in the master `modules/qmldir` so all subdirectories can reach it with `import ".."`.
 5. **New singletons require a full restart.** Hot reload covers QML edits; qmldir/import changes do not.
 6. **`NotifService._liveRefs[id]`** is a private map kept only to invoke notification actions. Access it only for action invocation, not for general state.
+7. **Fullscreen overlays declare their own blur region.** A new `PanelWindow` that is a fullscreen transparent surface with a card inside must set `BackgroundEffect.blurRegion: Region { item: <card>; radius: <card radius> }` (`import Quickshell.Wayland`). A compositor-side `blur true` layer rule would blur the whole screen, because it applies to the surface rectangle and neither niri nor the region protocol looks at per-pixel alpha. The matching `xray false` layer rules live in `contrib/niri/config.kdl` — without them niri blurs the wallpaper instead of the windows actually behind the card.
 
 ---
 

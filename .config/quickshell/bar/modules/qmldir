@@ -1,4 +1,6 @@
 singleton Theme 1.0 Theme.qml
+singleton Config 1.0 Config.qml
+singleton CompositorService 1.0 CompositorService.qml
 singleton NotifService 1.0 NotifService.qml
 singleton AiPanelState 1.0 AiPanelState.qml
 singleton LemonadeService 1.0 LemonadeService.qml

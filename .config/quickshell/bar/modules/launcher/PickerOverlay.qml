@@ -27,6 +27,10 @@ PanelWindow {
     color: "transparent"
     surfaceFormat.opaque: false
 
+    // Blur only the card, not the fullscreen surface — see the background-effect
+    // note in contrib/niri/config.kdl.
+    BackgroundEffect.blurRegion: Region { item: card; radius: Theme.launcherRadius }
+
     Component.onCompleted: exclusionMode = ExclusionMode.Ignore
 
     visible: false
@@ -134,7 +138,7 @@ PanelWindow {
                         exec:    item.exec    ?? "",
                         title:   item.title   ?? "",
                         cls:     item.cls     ?? "",
-                        address: item.address ?? "",
+                        topIndex: item.topIndex ?? -1,
                         path:    item.path    ?? "",
                         isDir:   item.isDir   ?? false,
                         char:    item.char    ?? "",
@@ -696,7 +700,6 @@ PanelWindow {
 
     // ── Action processes ──────────────────────────────────────────────────
     Process { id: appRunner }
-    Process { id: winFocuser }
     Process { id: fileOpener }
     Process { id: charCopier }
     Process { id: clipRestorer }
@@ -715,9 +718,7 @@ PanelWindow {
             LauncherState.close()
 
         } else if (m === "window") {
-            winFocuser.command = ["hyprctl", "dispatch", "hl.dsp.focus({ window = \"address:" + item.address + "\" })"]
-            winFocuser.running = false
-            winFocuser.running = true
+            LauncherState.activateWindow(item.topIndex)
             LauncherState.close()
 
         } else if (m === "files") {

@@ -4,7 +4,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
 import "modules"
 import "modules/notifications"
 import "modules/launcher"
@@ -17,57 +16,46 @@ ShellRoot {
         source: "/usr/share/fonts/ttf-material-symbols-variable/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf"
     }
 
+    // Resolve an explicit monitor name, or fall back to the focused monitor when
+    // the caller passes an empty string — that way a compositor keybind never has
+    // to shell out to find the focused output.
+    function _withNamedOrFocusedScreen(monitorName, callback) {
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            if (Quickshell.screens[i].name === monitorName) {
+                callback(Quickshell.screens[i])
+                return
+            }
+        }
+        CompositorService.withFocusedScreen(callback)
+    }
+
     IpcHandler {
         target: "notifications"
         function toggle(monitorName: string) {
-            for (var i = 0; i < Quickshell.screens.length; i++) {
-                if (Quickshell.screens[i].name === monitorName) {
-                    NotifService.toggleCenter(Quickshell.screens[i])
-                    return
-                }
-            }
-            NotifService.toggleCenter(Quickshell.screens[0])
+            _withNamedOrFocusedScreen(monitorName, screen => NotifService.toggleCenter(screen))
         }
     }
 
     IpcHandler {
         target: "launcher"
+        // Resolving the focused monitor needs compositor IPC, so this is async and
+        // the overlay opens a few milliseconds after the keybind fires.
         function open(mode: string) {
-            var focusedName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
-            for (var i = 0; i < Quickshell.screens.length; i++) {
-                if (Quickshell.screens[i].name === focusedName) {
-                    LauncherState.open(mode, Quickshell.screens[i])
-                    return
-                }
-            }
-            LauncherState.open(mode, Quickshell.screens[0])
+            CompositorService.withFocusedScreen(screen => LauncherState.open(mode, screen))
         }
     }
 
     IpcHandler {
         target: "totp"
         function toggle(monitorName: string) {
-            for (var i = 0; i < Quickshell.screens.length; i++) {
-                if (Quickshell.screens[i].name === monitorName) {
-                    TotpVaultState.togglePanel(Quickshell.screens[i])
-                    return
-                }
-            }
-            TotpVaultState.togglePanel(Quickshell.screens[0])
+            _withNamedOrFocusedScreen(monitorName, screen => TotpVaultState.togglePanel(screen))
         }
     }
 
     IpcHandler {
         target: "workspaces"
         function open() {
-            var focusedName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
-            for (var i = 0; i < Quickshell.screens.length; i++) {
-                if (Quickshell.screens[i].name === focusedName) {
-                    WorkspaceSwitcherState.open(Quickshell.screens[i])
-                    return
-                }
-            }
-            WorkspaceSwitcherState.open(Quickshell.screens[0])
+            CompositorService.withFocusedScreen(screen => WorkspaceSwitcherState.open(screen))
         }
     }
 

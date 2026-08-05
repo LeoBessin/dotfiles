@@ -28,6 +28,10 @@ PanelWindow {
     color: "transparent"
     surfaceFormat.opaque: false
 
+    // Blur only the card, not the fullscreen surface — see the background-effect
+    // note in contrib/niri/config.kdl.
+    BackgroundEffect.blurRegion: Region { item: panelContent; radius: Theme.radius }
+
     Component.onCompleted: exclusionMode = ExclusionMode.Ignore
 
     visible: false
@@ -1149,7 +1153,9 @@ ColumnLayout {
                                 icon:      ""
                                 label:     "Lock"
                                 iconColor: Theme.fg
-                                command:   ["hyprlock"]
+                                // Per-compositor default, overridable via
+                                // ~/.config/quickshell/bar/config.json
+                                command:   CompositorService.lockCommand
                                 Layout.fillWidth: true
                             }
                             PowerButton {

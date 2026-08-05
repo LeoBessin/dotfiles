@@ -1,0 +1,210 @@
+// niri companion config for this QuickShell bar.
+//
+// The shell itself is compositor agnostic; this file is what niri needs in order
+// to start it and open its overlays. It mirrors ~/.config/hypr/lua/keybindings.lua
+// and windowrules.lua.
+//
+// Note that the blur the layer surfaces get on Hyprland does NOT carry over to
+// the fullscreen overlays — see the comment above the layer rules for why.
+//
+// Install by including it from ~/.config/niri/config.kdl:
+//
+//     include "~/.config/quickshell/bar/contrib/niri/config.kdl"
+//
+// or by copying the blocks below into your own config. Requires niri 25.08 or
+// newer: that release added both `spawn-sh-at-startup` and the ext-workspace-v1
+// protocol the bar reads its workspaces from.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Autostart
+// ─────────────────────────────────────────────────────────────────────────────
+spawn-sh-at-startup "qs -p ~/.config/quickshell/bar"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Key bindings
+// ─────────────────────────────────────────────────────────────────────────────
+binds {
+    // ── QuickShell overlays ─────────────────────────────────────────────────
+    // Each command targets the shell over its IPC socket. The monitor argument is
+    // left empty on purpose: the shell resolves the focused output itself, so
+    // there is no sub-shell or jq dependency here.
+    Alt+Space hotkey-overlay-title="Application finder" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call launcher open app"
+    }
+    // niri's own overview, not the shell's workspace switcher: on niri the shell
+    // cannot draw live window previews (no hyprland-toplevel-export-v1), so its
+    // switcher would only show icon cards. Bound straight to the action rather than
+    // through `ipc call workspaces open` to skip the subprocess — though that IPC
+    // call also defers here, so either form behaves the same.
+    Mod+Tab hotkey-overlay-title="Overview" { toggle-overview; }
+    Mod+Shift+E hotkey-overlay-title="File finder" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call launcher open files"
+    }
+    Mod+Comma hotkey-overlay-title="Emoji picker" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call launcher open emoji"
+    }
+    Mod+Period hotkey-overlay-title="Icon picker" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call launcher open icon"
+    }
+    Mod+V hotkey-overlay-title="Clipboard picker" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call launcher open clip"
+    }
+    Mod+Shift+V hotkey-overlay-title="Clipboard manager" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call launcher open clip"
+    }
+    Mod+N hotkey-overlay-title="Notification center" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call notifications toggle ''"
+    }
+    Mod+Shift+T hotkey-overlay-title="TOTP vault" {
+        spawn-sh "qs -p ~/.config/quickshell/bar ipc call totp toggle ''"
+    }
+    // Restart the shell after editing it.
+    Alt+Control_R hotkey-overlay-title="Restart QuickShell bar" {
+        spawn-sh "pkill qs || qs -p ~/.config/quickshell/bar"
+    }
+
+    // ── Workspaces ──────────────────────────────────────────────────────────
+    // The bar's pills and its workspace overview both switch workspaces through
+    // ext-workspace-v1, so they work without any of these binds. They exist so
+    // the keyboard behaves the same as on Hyprland.
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+    Mod+0 { focus-workspace 10; }
+
+    Mod+Shift+1 { move-window-to-workspace 1; }
+    Mod+Shift+2 { move-window-to-workspace 2; }
+    Mod+Shift+3 { move-window-to-workspace 3; }
+    Mod+Shift+4 { move-window-to-workspace 4; }
+    Mod+Shift+5 { move-window-to-workspace 5; }
+    Mod+Shift+6 { move-window-to-workspace 6; }
+    Mod+Shift+7 { move-window-to-workspace 7; }
+    Mod+Shift+8 { move-window-to-workspace 8; }
+    Mod+Shift+9 { move-window-to-workspace 9; }
+    Mod+Shift+0 { move-window-to-workspace 10; }
+
+    Mod+Ctrl+Right { focus-workspace-down; }
+    Mod+Ctrl+Left  { focus-workspace-up; }
+    Mod+Ctrl+Alt+Right { move-window-to-workspace-down; }
+    Mod+Ctrl+Alt+Left  { move-window-to-workspace-up; }
+
+    Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp   cooldown-ms=150 { focus-workspace-up; }
+
+    // ── Focus and window movement ───────────────────────────────────────────
+    Mod+Left  { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+Up    { focus-window-up; }
+    Mod+Down  { focus-window-down; }
+    Mod+Shift+Left  { move-column-left; }
+    Mod+Shift+Right { move-column-right; }
+    Mod+Shift+Up    { move-window-up; }
+    Mod+Shift+Down  { move-window-down; }
+    Mod+O { toggle-overview; }
+
+    // ── Launchers ───────────────────────────────────────────────────────────
+    Mod+T { spawn "kitty"; }
+    Mod+E { spawn "nautilus"; }
+    Mod+B { spawn "brave"; }
+    Mod+A { spawn-sh "kitty --class ai-picker -e ai-cli-picker"; }
+    Ctrl+Shift+Escape { spawn-sh "kitty btop"; }
+
+    // ── Hardware keys ───────────────────────────────────────────────────────
+    // The bar's volume and brightness widgets read the same backends, so their
+    // readouts follow along automatically.
+    XF86AudioMute        allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    XF86AudioMicMute     allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "-l" "1" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+    F10 allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    F11 allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+    F12 allow-when-locked=true { spawn "wpctl" "set-volume" "-l" "1" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+
+    XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
+    XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }
+    XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }
+
+    XF86MonBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "-e4" "-n2" "set" "5%+"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "-e4" "-n2" "set" "5%-"; }
+
+    // ── Utilities ───────────────────────────────────────────────────────────
+    Mod+P       { screenshot; }
+    Print       { screenshot-screen; }
+    Alt+Print   { screenshot-window; }
+    Mod+K       { switch-layout "next"; }
+
+    // The notification center's Lock button runs this same command by default; it
+    // can be changed in ~/.config/quickshell/bar/config.json.
+    Mod+Escape { spawn "swaylock" "-f"; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer rules — the shell's seven layer-shell surfaces
+// ─────────────────────────────────────────────────────────────────────────────
+// The namespaces below are declared by the QML (WlrLayershell.namespace) and are
+// the same strings the Hyprland layer rules match on. `match namespace=` is a
+// regex matched anywhere in the namespace, so each is anchored to avoid
+// "quickshell-bar" also matching a future "quickshell-bar-something".
+//
+// background-effect { blur } requires niri 26.04 or newer. On an older niri the
+// blur line is simply ignored and the surfaces render with their own translucent
+// backgrounds, which still looks correct — just without the backdrop blur.
+
+// `xray false` on every rule below: niri turns xray ON automatically as soon as
+// any background effect is active, and xray samples the WALLPAPER instead of the
+// windows underneath. That is not what Hyprland did — its blur read the actual
+// framebuffer — so panels ended up showing a blurred wallpaper floating over
+// whatever window was really behind them.
+
+layer-rule {
+    match namespace="^quickshell-bar$"
+    background-effect {
+        blur true
+        xray false
+        noise 0.02
+    }
+}
+
+// ── Why the overlays don't set `blur true` ─────────────────────────────────
+// Every surface below is a FULLSCREEN transparent PanelWindow with the visible
+// card drawn inside it (anchors.left/right/top/bottom all true, color
+// "transparent" — see PickerOverlay.qml, NotificationToast.qml,
+// NotificationCenter.qml, WorkspaceSwitcher.qml).
+//
+// `background-effect { blur true }` applies to the whole surface rectangle, so on
+// a fullscreen overlay it would blur the ENTIRE SCREEN. Hyprland avoided that with
+// `blur = true` + `ignore_alpha = 0`, which skipped fully transparent pixels; niri
+// has no per-pixel equivalent.
+//
+// Instead the overlays ask for blur from the client side: QuickShell 0.3's
+// `BackgroundEffect.blurRegion` (org_kde_kwin_blur) hands niri the card's exact
+// rounded rectangle, so only that area is blurred. See the `BackgroundEffect`
+// lines in the QML files listed above. The rule here only needs to switch xray
+// off — `blur true` would defeat the whole point.
+//
+// `quickshell-toasts` and `quickshell-workspaces` are deliberately absent. The
+// toast surface holds a variable stack of cards that each slide in from off their
+// own bounds, so a single region would blur the 6px gaps between them and the
+// empty slot a card is still animating into; ToastCard is 92% opaque anyway. The
+// workspace switcher is not bound on niri (Mod+Tab goes to the native overview,
+// see the binds above) and paints a fullscreen dim backdrop rather than a card.
+
+layer-rule {
+    match namespace="^quickshell-(launcher|ai-panel|totp-panel|notif-center)$"
+    background-effect {
+        xray false
+        noise 0.02
+    }
+}
+
+layer-rule {
+    // The TOTP panel shows one-time codes — keep it out of screencasts.
+    match namespace="^quickshell-totp-panel$"
+    block-out-from "screencast"
+}
