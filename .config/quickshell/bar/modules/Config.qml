@@ -20,6 +20,17 @@ Item {
     // Empty → CompositorService picks a per-compositor default.
     property var lockCommand: []
 
+    // Weather card location. Undefined → WeatherService falls back to an IP
+    // lookup; set both to pin the location and skip that network call entirely.
+    property var    weatherLatitude:     undefined
+    property var    weatherLongitude:    undefined
+    property string weatherLocationName: ""
+    // "" or "metric" → °C / km-h. "imperial" → °F / mph.
+    property string weatherUnits:        ""
+
+    readonly property bool weatherFixedLocation:
+        typeof weatherLatitude === "number" && typeof weatherLongitude === "number"
+
     FileView {
         id: configFile
         path: root.path
@@ -32,16 +43,33 @@ Item {
     }
 
     function _parse(raw) {
-        var next = []
+        var next     = []
+        var lat      = undefined
+        var lon      = undefined
+        var locName  = ""
+        var units    = ""
+
         if (raw && raw.trim() !== "") {
             try {
                 var json = JSON.parse(raw)
                 if (Array.isArray(json.lockCommand))
                     next = json.lockCommand
+                if (typeof json.weatherLatitude  === "number") lat = json.weatherLatitude
+                if (typeof json.weatherLongitude === "number") lon = json.weatherLongitude
+                if (typeof json.weatherLocationName === "string") locName = json.weatherLocationName
+                if (typeof json.weatherUnits === "string")        units   = json.weatherUnits
             } catch (e) {
                 console.warn("Config: ignoring malformed " + root.path + " — " + e)
             }
         }
+
         root.lockCommand = next
+        // Coordinates only count as an override when both are present, so a
+        // half-filled config falls back to the IP lookup instead of pinning 0,0.
+        var paired = (lat !== undefined && lon !== undefined)
+        root.weatherLatitude     = paired ? lat : undefined
+        root.weatherLongitude    = paired ? lon : undefined
+        root.weatherLocationName = locName
+        root.weatherUnits        = units
     }
 }

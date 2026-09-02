@@ -11,8 +11,9 @@ singleton BrightnessService 1.0 BrightnessService.qml
 singleton KeyboardBrightnessService 1.0 KeyboardBrightnessService.qml
 singleton NetworkService 1.0 NetworkService.qml
 singleton TotpVaultState 1.0 TotpVaultState.qml
-singleton DockerService 1.0 DockerService.qml
+singleton WeatherService 1.0 WeatherService.qml
 BarWidget 1.0 BarWidget.qml
 CalendarView 1.0 CalendarView.qml
 PowerButton 1.0 PowerButton.qml
 MediaPlayerWidget 1.0 MediaPlayerWidget.qml
+WeatherWidget 1.0 WeatherWidget.qml

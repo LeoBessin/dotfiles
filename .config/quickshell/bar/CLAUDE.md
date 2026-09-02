@@ -22,13 +22,15 @@ bar/
 │   ├── BrightnessService.qml          # SINGLETON — screen backlight
 │   ├── KeyboardBrightnessService.qml  # SINGLETON — keyboard backlight
 │   ├── NetworkService.qml             # SINGLETON — NetworkManager state
+│   ├── WeatherService.qml             # SINGLETON — Open-Meteo forecast polling
 │   ├── BarWidget.qml                  # Base component for bar pill-widgets
 │   ├── CalendarView.qml               # Calendar tab component
+│   ├── WeatherWidget.qml              # Weather card (notification center)
 │   ├── MediaPlayerWidget.qml          # MPRIS media player widget
 │   ├── PowerButton.qml                # Reusable power action button
 │   ├── notifications/
 │   │   ├── qmldir                     # Notification UI components
-│   │   ├── NotificationCenter.qml     # Slide-in panel (tabs: notifs, caffeine, calendar, settings)
+│   │   ├── NotificationCenter.qml     # Slide-in panel (tabs: notifs, caffeine, weather, calendar, settings)
 │   │   ├── NotificationToast.qml      # Overlay window — shows up to 5 toasts
 │   │   ├── NotificationItem.qml       # Single notification card (history panel)
 │   │   ├── NotifAppGroup.qml          # App-grouped notification container
@@ -80,6 +82,13 @@ If you add a new singleton or a new `import` line to `shell.qml`, QuickShell req
 | `Theme.claude` | `#CC785C` | Anthropic brand |
 | `Theme.copilot` | `#F2F5F3` | Copilot brand |
 
+### Weather palette
+| Property | Value | Use |
+|---|---|---|
+| `Theme.weatherTrackBg` | `rgba(1,1,1,0.12)` | Daily range-bar track |
+| `Theme.weatherSunTint` | `#ffd27f` | Sunrise/sunset strip slot |
+| `Theme.weatherRamp` | 6 stops, −10 → 32 °C | Cold→warm ramp for the range bars |
+
 ### Notification palette
 | Property | Value | Use |
 |---|---|---|
@@ -102,6 +111,12 @@ If you add a new singleton or a new `import` line to `shell.qml`, QuickShell req
 | `Theme.iconFamily` | "Material Symbols Rounded" |
 | `Theme.fontSize` | 12px |
 | `Theme.iconSize` | 16px |
+| `Theme.weatherTempSize` | 44px |
+| `Theme.weatherIconSize` | 30px |
+| `Theme.weatherHourIconSize` | 20px |
+| `Theme.weatherDayRowHeight` | 24px |
+| `Theme.weatherHourSlots` | 6 |
+| `Theme.weatherDailyRows` | 5 |
 
 ### Animation & Timings
 | Property | Value | Use |
@@ -111,6 +126,12 @@ If you add a new singleton or a new `import` line to `shell.qml`, QuickShell req
 | `Theme.toastDuration` | 5000ms | Toast auto-dismiss |
 | `Theme.markReadDelay` | 800ms | Auto-read on panel open |
 | `Theme.usageCacheMs` | 60000ms | Claude/Copilot usage cache TTL |
+| `Theme.weatherPollMs` | 900000ms | Background forecast poll (Open-Meteo's own `current` interval) |
+| `Theme.weatherStaleMs` | 600000ms | On-open refresh threshold; also drives the stale marker |
+| `Theme.weatherRetryBaseMs` | 30000ms | First retry after a failed fetch, then doubling |
+| `Theme.weatherHeartbeatMs` | 60000ms | Suspend / midnight detection tick |
+| `Theme.weatherSuspendGapMs` | 150000ms | Wall-clock gap that means the machine was asleep |
+| `Theme.weatherGeoTtlMs` | 21600000ms | IP-location re-resolve ceiling (6h) |
 
 ---
 
@@ -139,6 +160,58 @@ NotifService.toggleAppCollapsed(appName)
 
 signal toastRequested(var toastData)
 ```
+
+### `WeatherService`
+Current conditions plus hourly/daily forecast from Open-Meteo (no API key). A single
+request covers all three. Location comes from `config.json` when set, otherwise a
+one-off `ip-api.com` lookup; both the location and the last good payload are cached
+to `~/.local/share/quickshell/weather.json`, so the card is populated before the
+first request returns and keeps showing last-known values while offline.
+
+Optional `config.json` keys (see `Config.qml`) — `weatherLatitude` and
+`weatherLongitude` only take effect as a pair, and setting them skips the
+`ip-api.com` call entirely:
+
+```json
+{
+  "weatherLatitude": 48.11,
+  "weatherLongitude": -1.6744,
+  "weatherLocationName": "Rennes",
+  "weatherUnits": "metric"
+}
+```
+
+```qml
+WeatherService.ready             // bool — any data applied (cache or live)
+WeatherService.loading           // bool
+WeatherService.stale             // bool — reading older than Theme.weatherStaleMs
+WeatherService.locationName      // string
+WeatherService.temp              // real — current, in the configured unit
+WeatherService.code              // int  — WMO weather code
+WeatherService.isDay             // bool
+WeatherService.todayMax          // real
+WeatherService.todayMin          // real
+WeatherService.hourlyModel       // ListModel — { label, code, isDay, temp, kind }
+WeatherService.dailyModel        // ListModel — { label, code, minTemp, maxTemp }
+WeatherService.weekMin/weekMax   // real — range-bar normalisation bounds
+
+WeatherService.refresh()
+WeatherService.refreshIfStale()  // called by NotificationCenter on open
+WeatherService.codeIcon(code, isDay)   // Material Symbols glyph
+WeatherService.codeLabel(code)         // "Mostly Clear", "Heavy Rain", …
+WeatherService.tempColor(v)            // interpolated Theme.weatherRamp colour
+```
+
+Refresh cadence: 15 min background poll, an on-open check against
+`Theme.weatherStaleMs`, exponential backoff on failure, and a 60 s heartbeat that
+catches waking from suspend and rolling past midnight (which shifts what
+"tomorrow" means for the daily rows).
+
+Timestamps in the API response are wall-clock strings for the **forecast**
+location with no offset, which is not necessarily this machine's timezone. Never
+hand them to `Date.parse` directly — go through the private `_apiMs()`, which
+applies the `utc_offset_seconds` the API reports. Display labels are sliced
+straight out of the strings so they read in the location's own time.
 
 ### `CaffeineState`
 Controls `systemd-inhibit` to prevent sleep.
@@ -175,7 +248,16 @@ D-Bus → NotificationServer.onNotification
 4. **Singletons stay in `modules/`.** A singleton needed by files in multiple directories must be registered in the master `modules/qmldir` so all subdirectories can reach it with `import ".."`.
 5. **New singletons require a full restart.** Hot reload covers QML edits; qmldir/import changes do not.
 6. **`NotifService._liveRefs[id]`** is a private map kept only to invoke notification actions. Access it only for action invocation, not for general state.
-7. **Fullscreen overlays declare their own blur region.** A new `PanelWindow` that is a fullscreen transparent surface with a card inside must set `BackgroundEffect.blurRegion: Region { item: <card>; radius: <card radius> }` (`import Quickshell.Wayland`). A compositor-side `blur true` layer rule would blur the whole screen, because it applies to the surface rectangle and neither niri nor the region protocol looks at per-pixel alpha. The matching `xray false` layer rules live in `contrib/niri/config.kdl` — without them niri blurs the wallpaper instead of the windows actually behind the card.
+7. **`ListModel` roles are fixed at the first append.** A later object with a
+   different key set silently loses the missing roles, and the delegate renders
+   blank. `WeatherService._buildHourly` appends an explicit fixed role set for
+   exactly this reason — the "Now" slot and the sunrise/sunset slot must carry
+   the same keys as a plain forecast hour.
+8. **Re-assigning `Process.running` kills a live process.** Several things ask
+   for a weather fetch at once on startup (cache load, fallback timer, config
+   arriving late); `WeatherService._fetchWeather` guards on `running` so they do
+   not abort each other into a spurious failure and backoff.
+9. **Fullscreen overlays declare their own blur region.** A new `PanelWindow` that is a fullscreen transparent surface with a card inside must set `BackgroundEffect.blurRegion: Region { item: <card>; radius: <card radius> }` (`import Quickshell.Wayland`). A compositor-side `blur true` layer rule would blur the whole screen, because it applies to the surface rectangle and neither niri nor the region protocol looks at per-pixel alpha. The matching `xray false` layer rules live in `contrib/niri/config.kdl` — without them niri blurs the wallpaper instead of the windows actually behind the card.
 
 ---
 

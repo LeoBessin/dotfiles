@@ -83,6 +83,62 @@ QtObject {
     // ── TOTP vault panel ────────────────────────────────────────────────────
     readonly property int totpPanelWidth: 380
 
-    // ── Docker widget ────────────────────────────────────────────────────
-    readonly property int dockerPollMs: 3000
+    // ── Lock screen ───────────────────────────────────────────────────────
+    // Consumed by ~/.config/quickshell/lock (separate qs instance, reaches
+    // this singleton through its `modules` symlink back to this directory).
+    readonly property color lockDim:         Qt.rgba(0.04, 0.04, 0.08, 0.55)  // scrim over the blurred wallpaper
+    readonly property color lockCardBg:      Qt.rgba(0.10, 0.09, 0.15, 0.72)
+    readonly property color lockCardBorder:  Qt.rgba(0.70, 0.62, 0.86, 0.18)
+    readonly property color lockFieldBg:     Qt.rgba(0.15, 0.14, 0.23, 0.75)
+    readonly property color lockFieldBorder: Qt.rgba(0.70, 0.62, 0.86, 0.22)
+    readonly property color lockDotIdle:     Qt.rgba(0.88, 0.88, 0.94, 0.45)
+
+    // Typography matches the hyprlock config it replaced: JetBrains Mono
+    // throughout (Theme.monoFamily), clock Bold, everything else Regular.
+    readonly property int  lockClockWeight: Font.Bold
+
+    readonly property int  lockClockSize:   88
+    readonly property int  lockDateSize:    17
+    readonly property int  lockCardWidth:   340
+    readonly property int  lockCardRadius:  22
+    readonly property int  lockCardPad:     22
+    readonly property int  lockFieldHeight: 46
+    readonly property int  lockDotSize:      9
+    readonly property int  lockDotSpacing:   7
+    readonly property int  lockHintSize:    12
+
+    readonly property real lockWallBlur:    0.62   // MultiEffect blur strength (0..1)
+    readonly property int  lockWallBlurMax:   56   // MultiEffect blurMax radius
+    readonly property int  lockShakeMs:      420   // failed-auth shake duration
+    readonly property int  lockShakeAmount:   14   // failed-auth shake travel, px
+
+    // ── Weather widget ────────────────────────────────────────────────────
+    readonly property color weatherTrackBg:  Qt.rgba(1, 1, 1, 0.12)  // daily range-bar track
+    readonly property color weatherSunTint:  "#ffd27f"               // sunrise/sunset slot glyph
+
+    // Cold → warm ramp for the daily range bars, in °C. Interpolated by
+    // WeatherService.tempColor(); Fahrenheit is converted before lookup so the
+    // stops stay unit-independent. Mid stops reuse the green/yellow/red hues.
+    readonly property var weatherRamp: [
+        { t: -10, c: "#7ec8e3" },
+        { t:   0, c: "#8fd3d8" },
+        { t:  10, c: "#a5d6a7" },
+        { t:  18, c: "#fff176" },
+        { t:  25, c: "#ffb74d" },
+        { t:  32, c: "#ef9a9a" }
+    ]
+
+    readonly property int weatherTempSize:      44
+    readonly property int weatherIconSize:      30
+    readonly property int weatherHourIconSize:  20
+    readonly property int weatherDayRowHeight:  24
+    readonly property int weatherHourSlots:      6
+    readonly property int weatherDailyRows:      5
+
+    readonly property int  weatherPollMs:        900000   // 15 min — Open-Meteo's own `current` interval
+    readonly property int  weatherStaleMs:       600000   // 10 min — on-open refresh threshold
+    readonly property int  weatherRetryBaseMs:    30000   // first retry after a failed fetch
+    readonly property int  weatherHeartbeatMs:    60000   // suspend / midnight detection tick
+    readonly property int  weatherSuspendGapMs:  150000   // wall-clock gap that means "we were asleep"
+    readonly property real weatherGeoTtlMs:    21600000   // 6 h — IP location re-resolve ceiling
 }

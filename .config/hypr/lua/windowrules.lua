@@ -39,9 +39,17 @@ hl.window_rule({
 -- ──────────────────────────────────────────────────────
 hl.window_rule({
     name  = "opacity-terminals",
-    match = { class = "^(kitty|claude-code)$" },
+    match = { class = "^claude-code$" },
     opacity = "0.80 0.80 1",
 })
+
+-- kitty has no window rule of its own. It is deliberately absent from
+-- opacity-terminals above: it sets `background_opacity 0.55` (= Theme.bg alpha)
+-- itself in ~/.config/kitty/kitty.conf, which fades only the background, whereas
+-- an `opacity` rule would fade the glyphs too — and the bar's text is opaque.
+-- The bar-derived border and the 10px Theme.radius are global (options.lua), and
+-- blur is global here too, so there is nothing left to override.
+-- Mirrored for niri in ~/.config/niri/window-rules.kdl.
 
 hl.window_rule({
     name  = "ai-picker",
@@ -114,11 +122,8 @@ hl.window_rule({
 -- Layer rules
 -- ──────────────────────────────────────────────────────
 local blur_namespaces = {
-    "rofi",
-    "notifications",
-    "swaync-notification-window",
-    "swaync-control-center",
-    "logout_dialog",
+    "rofi",             -- kept as themed fallback launcher
+    "logout_dialog",    -- wlogout (Ctrl+Alt+Delete)
     "quickshell-notif-center",
     "quickshell-toasts",
     "quickshell-bar",
@@ -134,6 +139,3 @@ end
 
 hl.layer_rule({ match = { namespace = "rofi" },              animation = "slide bottom 6 winIn" })
 hl.layer_rule({ match = { namespace = "quickshell-launcher" }, animation = "slide bottom 10 wind" })
-
--- Waybar: explicitly no blur
-hl.layer_rule({ match = { namespace = "waybar" }, blur = false })

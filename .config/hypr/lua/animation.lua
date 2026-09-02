@@ -27,7 +27,7 @@ hl.animation({ leaf = "fadeLayers",    enabled = true, speed = 6,  bezier = "win
 hl.animation({ leaf = "fadeLayersIn",  enabled = true, speed = 6,  bezier = "winIn" })
 hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 5,  bezier = "winOut" })
 
--- ── Layers (rofi, waybar, notifications …) ───────────────────────
+-- ── Layers (quickshell bar/panels, rofi, wlogout …) ───────────────
 -- Per-namespace overrides live in windowrules.lua via hl.layer_rule
 hl.animation({ leaf = "layers",        enabled = true, speed = 6,  bezier = "wind" })
 hl.animation({ leaf = "layersIn",      enabled = true, speed = 6,  bezier = "winIn",  style = "fade" })

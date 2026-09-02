@@ -1,13 +1,27 @@
 -- Visual appearance and compositor settings
 
-local border_active   = { colors = { "rgba(eb6f92ee)", "rgba(c4a7e7ee)" }, angle = 45 }
-local border_inactive = "rgba(47495caa)"
+-- Outlines follow the quickshell bar — ~/.config/quickshell/bar/modules/Theme.qml.
+-- Every window carries the bar's own 1px resting outline, focused or not:
+-- Qt.rgba(0.70, 0.62, 0.86, 0.25), i.e. Theme.accent at 25%. Focus adds weight
+-- rather than changing colour. Replaced the Rosé Pine love→iris gradient
+-- (eb6f92 → c4a7e7 over 47495c).
+--
+-- Mirrored for niri in ~/.config/niri/layout.kdl, but only approximately. niri
+-- expresses the focused state as a 2px focus ring outside the border, in the same
+-- flat 25% as the border itself. Hyprland has no focus ring and `border_size`
+-- cannot vary by focus state, so the extra weight comes from the shadow below
+-- instead: the same accent tint, transparent when unfocused. Same idea — extra
+-- weight on the focused window, no colour change — different mechanism. The
+-- shadow does fade by nature, which niri's flat ring does not; that is the one
+-- place the two sessions genuinely differ.
+local border_active   = "rgba(b39ddb40)"
+local border_inactive = "rgba(b39ddb40)"
 
 hl.config({
     general = {
         gaps_in     = 3,
         gaps_out    = 3,
-        border_size = 2,
+        border_size = 1,   -- bar outline is 1px
         col = {
             active_border   = border_active,
             inactive_border = border_inactive,
@@ -24,11 +38,16 @@ hl.config({
         inactive_opacity = 1.0,
         fullscreen_opacity = 1.0,
 
+        -- Stands in for niri's focus ring: a centred accent halo on the focused
+        -- window only, roughly the same weight and fade as the 2px ring.
+        -- offset 0 0 keeps it a halo rather than a drop shadow.
         shadow = {
-            enabled      = false,
-            range        = 4,
-            render_power = 3,
-            color        = 0xee1a1a1a,
+            enabled        = true,
+            range          = 3,
+            render_power   = 2,
+            offset         = { 0, 0 },
+            color          = "rgba(b39ddb40)",   -- same 25% as border and ring
+            color_inactive = "rgba(b39ddb00)",   -- unfocused: nothing but the 1px border
         },
 
         blur = {

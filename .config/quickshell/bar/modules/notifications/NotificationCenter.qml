@@ -51,6 +51,7 @@ PanelWindow {
                 copilotUsageFetcher.running = false
                 copilotUsageFetcher.running = true
             }
+            WeatherService.refreshIfStale()
         } else {
             hideTimer.restart()
         }
@@ -682,6 +683,7 @@ PanelWindow {
                         Item {
                             Layout.fillWidth:  true
                             Layout.fillHeight: true
+                            Layout.minimumHeight: 140
 
                             Text {
                                 visible: NotifService.historyModel.count === 0
@@ -724,6 +726,23 @@ PanelWindow {
                                     }
                                 }
                             }
+                        }
+
+                        // ── Weather widget ───────────────────────────────
+                        WeatherWidget {
+                            Layout.fillWidth: true
+                        }
+
+                        // Same divider style as the media/AI split above. The
+                        // margins are on the divider because this column runs at
+                        // spacing: 0, so the two widgets would otherwise butt
+                        // straight up against the rule.
+                        Rectangle {
+                            Layout.fillWidth:    true
+                            Layout.topMargin:    10
+                            Layout.bottomMargin: 10
+                            height: 1
+                            color:  Theme.notifBorderDim
                         }
 
                         // ── Calendar widget ───────────────────────────────
