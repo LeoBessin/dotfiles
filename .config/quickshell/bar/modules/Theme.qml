@@ -86,7 +86,10 @@ QtObject {
     // ── Lock screen ───────────────────────────────────────────────────────
     // Consumed by ~/.config/quickshell/lock (separate qs instance, reaches
     // this singleton through its `modules` symlink back to this directory).
-    readonly property color lockDim:         Qt.rgba(0.04, 0.04, 0.08, 0.55)  // scrim over the blurred wallpaper
+    // Two scrims: the shade page shows a sharp wallpaper and leans on this dim
+    // for legibility, the auth page is already softened by the blur.
+    readonly property color lockDim:         Qt.rgba(0.04, 0.04, 0.08, 0.55)  // scrim over the sharp shade page
+    readonly property color lockDimBlurred:  Qt.rgba(0.04, 0.04, 0.08, 0.42)  // scrim over the blurred auth page
     readonly property color lockCardBg:      Qt.rgba(0.10, 0.09, 0.15, 0.72)
     readonly property color lockCardBorder:  Qt.rgba(0.70, 0.62, 0.86, 0.18)
     readonly property color lockFieldBg:     Qt.rgba(0.15, 0.14, 0.23, 0.75)
@@ -111,6 +114,23 @@ QtObject {
     readonly property int  lockWallBlurMax:   56   // MultiEffect blurMax radius
     readonly property int  lockShakeMs:      420   // failed-auth shake duration
     readonly property int  lockShakeAmount:   14   // failed-auth shake travel, px
+
+    // Shade -> auth carousel: one slide, one blur cross-fade, one easing.
+    readonly property int  lockRevealMs:      460
+    readonly property int  lockRevealEasing:  Easing.OutCubic
+    readonly property int  lockIdleReturnMs:  30000  // auth page falls back to the shade after this
+
+    // Shade page widget row (weather | calendar), both chrome-less.
+    readonly property int  lockWidgetColWidth: 360   // matches notifCardWidth, the width they were tuned at
+    readonly property int  lockWidgetGap:       40   // between the two columns
+    readonly property int  lockWidgetTopGap:    48   // clock block -> widget row
+
+    // With no card behind them, the shade blocks need their own separation from
+    // the wallpaper. Keep the shadow tight: a wide one reads as a smudge.
+    readonly property color lockShadowColor:  Qt.rgba(0, 0, 0, 0.70)
+    readonly property real  lockShadowBlur:   0.45
+    readonly property int   lockShadowOffset: 2
+    readonly property color lockWidgetDivider: Qt.rgba(1, 1, 1, 0.16)  // internal rules, not an outline
 
     // ── Weather widget ────────────────────────────────────────────────────
     readonly property color weatherTrackBg:  Qt.rgba(1, 1, 1, 0.12)  // daily range-bar track

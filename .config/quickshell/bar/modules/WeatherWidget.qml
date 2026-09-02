@@ -18,6 +18,13 @@ Item {
 
     readonly property bool hasData: WeatherService.ready
 
+    // Surface colours, overridable so the same widget can sit on a different
+    // background. Defaults are the notification-centre palette it was drawn for;
+    // the lock screen passes transparents to strip the card down to bare content.
+    property color cardColor:    Theme.notifCardBg
+    property color borderColor:  Theme.notifUnreadBorder
+    property color dividerColor: Theme.notifBorderDim
+
     function deg(v) { return Math.round(v) + "°" }
 
     Rectangle {
@@ -32,8 +39,8 @@ Item {
         radius:       Theme.radius
         // Flat, same surface as the notification cards above it in this panel.
         // Day/night still reads from the condition glyph.
-        color:        Theme.notifCardBg
-        border.color: Theme.notifUnreadBorder
+        color:        root.cardColor
+        border.color: root.borderColor
         border.width: 1
 
         // ── Empty / unreachable state ─────────────────────────────────────
@@ -184,7 +191,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color:  Theme.notifBorderDim
+                color:  root.dividerColor
             }
 
             // ── Hourly strip ──────────────────────────────────────────────
@@ -240,7 +247,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color:  Theme.notifBorderDim
+                color:  root.dividerColor
             }
 
             // ── Daily rows ────────────────────────────────────────────────

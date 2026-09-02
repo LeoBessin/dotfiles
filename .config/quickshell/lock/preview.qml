@@ -6,6 +6,9 @@
 // ordinary layer surface that takes no keyboard focus. Cycles through the
 // visual states so they can be inspected (or screenshotted) without engaging
 // ext-session-lock and risking a lockout.
+//
+// The cycle covers both carousel pages, so the slide, the wallpaper blur
+// cross-fade and the chrome-less shade widgets are all visible here.
 
 import QtQuick
 import Quickshell
@@ -16,15 +19,24 @@ import "modules"
 ShellRoot {
     id: root
 
+    // Same reason as the real lock: the weather and calendar widgets are
+    // glyph-heavy and nothing else in this process loads that font.
+    FontLoader {
+        source: "/usr/share/fonts/ttf-material-symbols-variable/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf"
+    }
+
     property string wallpaper: ""
     property int    stage: 0
 
+    // `ms` is the dwell for that stage — the shade page gets longer because
+    // there is actually something to read on it.
     readonly property var stages: [
-        { dots: 0, busy: false, msg: "",                   err: false, caps: false },
-        { dots: 6, busy: false, msg: "",                   err: false, caps: false },
-        { dots: 8, busy: false, msg: "",                   err: false, caps: true  },
-        { dots: 0, busy: true,  msg: "",                   err: false, caps: false },
-        { dots: 0, busy: false, msg: "Incorrect password", err: true,  caps: false }
+        { shown: false, dots: 0, busy: false, msg: "",                   err: false, caps: false, ms: 3600 },
+        { shown: true,  dots: 0, busy: false, msg: "",                   err: false, caps: false, ms: 1600 },
+        { shown: true,  dots: 6, busy: false, msg: "",                   err: false, caps: false, ms: 1200 },
+        { shown: true,  dots: 8, busy: false, msg: "",                   err: false, caps: true,  ms: 1200 },
+        { shown: true,  dots: 0, busy: true,  msg: "",                   err: false, caps: false, ms: 1600 },
+        { shown: true,  dots: 0, busy: false, msg: "Incorrect password", err: true,  caps: false, ms: 1600 }
     ]
     readonly property var s: stages[stage]
 
@@ -52,11 +64,12 @@ ShellRoot {
             capsOn: root.s.caps
             username: Quickshell.env("USER") ?? ""
             shakeTrigger: 0
+            revealed: root.s.shown
         }
     }
 
     Timer {
-        interval: 1200
+        interval: root.s.ms
         running: true
         repeat: true
         onTriggered: root.stage = (root.stage + 1) % root.stages.length

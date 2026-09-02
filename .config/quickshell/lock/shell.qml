@@ -5,6 +5,12 @@
 // Reached by `loginctl lock-session` (Mod+L / Mod+Escape), which logind turns
 // into a Lock signal that hypridle answers with lock_cmd.
 //
+// The surface has two pages on a carousel (see LockContent.qml): a shade page
+// with the clock, weather and calendar over a sharp wallpaper, and an auth page
+// with the password/howdy form over a blurred one. `revealed` below says which
+// one every monitor is showing. No authentication can start from the shade —
+// that is what keeps a stray keypress on a closed lid from waking the camera.
+//
 // Auth runs in two stages so the camera never wakes until a password has
 // actually been tried and rejected:
 //
@@ -37,6 +43,12 @@ import "modules"
 ShellRoot {
     id: root
 
+    // The weather and calendar widgets are glyph-heavy (Theme.iconFamily) and
+    // this instance loaded no fonts back when the surface was clock-only.
+    FontLoader {
+        source: "/usr/share/fonts/ttf-material-symbols-variable/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf"
+    }
+
     // ── Shared state (above the per-screen surfaces) ─────────────────────
     property string password: ""
     property string wallpaper: ""
@@ -46,6 +58,10 @@ ShellRoot {
     property bool   capsOn: false
     property int    shakeTrigger: 0
 
+    // false = shade page (clock + widgets), true = auth page. Lives here rather
+    // than in LockContent so every monitor slides at the same time.
+    property bool   revealed: false
+
     // The password typed for the attempt currently in flight. Held separately so
     // the visible buffer can be cleared without losing the in-flight value.
     property string submitted: ""
@@ -54,8 +70,32 @@ ShellRoot {
     // rejected password. Only changes the wording of a stage 2 failure.
     property bool faceOnly: false
 
+    // ── Page transitions ─────────────────────────────────────────────────
+    function reveal() {
+        if (revealed) return
+        revealed = true
+        idleReturn.restart()
+    }
+
+    // Back to the clock page. The buffer goes with it: a half-typed password
+    // must not survive an idle return and sit there for whoever walks up next.
+    function shade() {
+        idleReturn.stop()
+        revealed = false
+        password = ""
+        message = ""
+        messageIsError = false
+    }
+
+    // Any typing postpones the idle return.
+    function touch() { if (revealed) idleReturn.restart() }
+
     function submit() {
+        // Belt and braces — LockContent already refuses to submit from the
+        // shade page, and stage 2 would otherwise wake the camera from it.
+        if (!revealed) return
         if (busy) return
+        touch()
         message = ""
         messageIsError = false
 
@@ -83,6 +123,7 @@ ShellRoot {
     }
 
     function fail(text) {
+        touch()
         busy = false
         faceOnly = false
         submitted = ""
@@ -93,6 +134,7 @@ ShellRoot {
     }
 
     function succeed() {
+        idleReturn.stop()
         busy = false
         faceOnly = false
         submitted = ""
@@ -126,16 +168,27 @@ ShellRoot {
                 capsOn: root.capsOn
                 username: Quickshell.env("USER") ?? ""
                 shakeTrigger: root.shakeTrigger
+                revealed: root.revealed
 
-                onTyped: (ch) => { if (!root.busy) root.password += ch }
-                onBackspacePressed: if (!root.busy) root.password = root.password.slice(0, -1)
-                onClearPressed: if (!root.busy) root.password = ""
+                onTyped: (ch) => { if (!root.busy) { root.password += ch; root.touch() } }
+                onBackspacePressed: if (!root.busy) { root.password = root.password.slice(0, -1); root.touch() }
+                onClearPressed: if (!root.busy) { root.password = ""; root.touch() }
                 onSubmitPressed: root.submit()
                 onCapsDetected: (on) => root.capsOn = on
+                onRevealRequested: root.reveal()
+                onShadeRequested: root.shade()
             }
         }
 
         onLockedChanged: if (!locked) quit.start()
+    }
+
+    // An auth page left untouched drops back to the clock page. Never while an
+    // attempt is in flight — howdy alone can outlast this interval.
+    Timer {
+        id: idleReturn
+        interval: Theme.lockIdleReturnMs
+        onTriggered: if (!root.busy) root.shade()
     }
 
     // Give the compositor a moment to process the unlock before the process
@@ -164,6 +217,7 @@ ShellRoot {
     IpcHandler {
         target: "lock"
         function unlock(): void {
+            idleReturn.stop()
             root.message = ""
             root.busy = false
             lock.locked = false
@@ -223,8 +277,9 @@ ShellRoot {
     }
 
     // ── Wallpaper ────────────────────────────────────────────────────────
-    // No FileView in quickshell 0.3.0; same Process+SplitParser pattern the
-    // bar's NotificationCenter uses to read the marker.
+    // Same Process+SplitParser pattern the bar's NotificationCenter uses to read
+    // the marker. One-shot at startup: a wallpaper change while locked is not
+    // picked up, which is fine for a surface nobody is looking at.
     Process {
         running: true
         command: ["sh", "-c", "cat \"$HOME/.local/share/wallpapers/.current\" 2>/dev/null || true"]
